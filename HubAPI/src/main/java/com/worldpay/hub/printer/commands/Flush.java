@@ -9,5 +9,8 @@ public class Flush extends PrinterCommand
     public Flush()
     {
         mData = new byte[]{ 0x0D, 0x0A };
+
+        //Add a 1 ms delay so that the queue knows to send this
+        mDelay = 1;
     }
 }

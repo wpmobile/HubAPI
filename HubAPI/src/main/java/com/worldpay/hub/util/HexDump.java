@@ -16,6 +16,8 @@
 
 package com.worldpay.hub.util;
 
+import android.util.Log;
+
 /**
  * Clone of Android's HexDump class, for use in debugging. Cosmetic changes
  * only.
@@ -29,8 +31,18 @@ public class HexDump {
         return dumpHexString(array, 0, array.length);
     }
 
+    public static void logHexString(byte[] array, int offset, int length)
+    {
+        String log = dumpHexString(array, offset, length);
+        String[] lines = log.split("\\n");
+        for(String l : lines)
+        {
+            Log.d("MePOS", l);
+        }
+    }
+
     public static String dumpHexString(byte[] array, int offset, int length) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new StringBuilder("\n");
 
         byte[] line = new byte[16];
         int lineIndex = 0;

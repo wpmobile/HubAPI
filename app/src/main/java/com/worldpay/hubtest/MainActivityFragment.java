@@ -1,10 +1,13 @@
 package com.worldpay.hubtest;
 
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -12,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,6 +25,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -32,13 +37,16 @@ import com.worldpay.hub.printer.commands.Bold;
 import com.worldpay.hub.printer.commands.ClearPrinter;
 import com.worldpay.hub.printer.commands.CutPaper;
 import com.worldpay.hub.printer.commands.DoubleWidthCharacters;
+import com.worldpay.hub.printer.commands.DownloadBitmap;
 import com.worldpay.hub.printer.commands.FeedPaper;
 import com.worldpay.hub.printer.commands.Flush;
 import com.worldpay.hub.printer.commands.Italic;
 import com.worldpay.hub.printer.commands.Justify;
 import com.worldpay.hub.printer.commands.OpenDrawer;
+import com.worldpay.hub.printer.commands.PrintBitmap;
 import com.worldpay.hub.printer.commands.PrintText;
 import com.worldpay.hub.printer.commands.ReversePrintMode;
+import com.worldpay.hub.printer.commands.SetCodePage;
 import com.worldpay.hub.printer.commands.Underline;
 import com.worldpay.hub.usbserial.driver.UsbSerialDriver;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
@@ -46,6 +54,8 @@ import com.worldpay.hub.usbserial.driver.UsbSerialProber;
 import com.worldpay.hub.MePOS;
 import com.worldpay.hub.util.HexDump;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -65,6 +75,11 @@ public class MainActivityFragment extends Fragment
     private Spinner mSpinner;
     private Button mProbe;
     private Button mPrintTest;
+    private Button mDrawer;
+    private Button mPrinterFeed;
+    static final int REQUEST_IMAGE_CAPTURE = 1;
+    public static final int CAPTURE_IMAGE_THUMBNAIL_ACTIVITY_REQUEST_CODE = 1888;
+
 
     private static final int MESSAGE_REFRESH = 101;
 
@@ -72,10 +87,13 @@ public class MainActivityFragment extends Fragment
 
     private static final String ACTION_USB_PERMISSION = "com.example.graphicsprinter.USB_PERMISSION";
 
-    private final Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler()
+    {
         @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
+        public void handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
                 case MESSAGE_REFRESH:
                     refreshDeviceList();
                     //mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
@@ -105,7 +123,8 @@ public class MainActivityFragment extends Fragment
         return view;
     }
 
-    public void onActivityCreated(Bundle savedInstanceState) {
+    public void onActivityCreated(Bundle savedInstanceState)
+    {
         super.onActivityCreated(savedInstanceState);
 
         mUsbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
@@ -140,6 +159,46 @@ public class MainActivityFragment extends Fragment
             }
         });
 
+        mDrawer = (Button) getActivity().findViewById(R.id.openDrawer);
+        mDrawer.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                MePOS hub = new MePOS(mPort, mUsbManager);
+                try
+                {
+                    hub.openCashDrawer();
+                } catch (MePOSResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        mPrinterFeed = (Button) getActivity().findViewById(R.id.printerFeed);
+        mPrinterFeed.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                MePOS hub = new MePOS(mPort, mUsbManager);
+                try
+                {
+                    hub.printerFeed(5);
+                } catch (MePOSResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         mProbe = (Button) getActivity().findViewById(R.id.probe);
         mProbe.setOnClickListener(new View.OnClickListener()
         {
@@ -156,52 +215,67 @@ public class MainActivityFragment extends Fragment
             @Override
             public void onClick(View view)
             {
+                byte[] picture = new byte[]{};
+                try
+                {
+                    InputStream is = getResources().openRawResource(R.raw.tr1);
+                    picture = new byte[is.available()];
+                    int read = is.read(picture);
+
+
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+
+                PrinterQueue imageQueue = new PrinterQueue();
+                imageQueue.add(new DownloadBitmap(picture));
+
+
                 PrinterQueue queue = new PrinterQueue();
                 queue.add(new ClearPrinter())
-                        .add(new PrintText("Hello Sam"))
-                        .add(new Flush())
+                        .add(new SetCodePage(SetCodePage.CODE_PAGE_1252))
+                        .add(new PrintText("Hello Sam\n"))
                         .add(new Underline(Underline.UNDERLINE_SINGLE))
-                        .add(new PrintText("This is underlined"))
-                        .add(new Flush())
+                        .add(new PrintText("This is underlined\n"))
                         .add(new Underline(Underline.UNDERLINE_NONE))
                         /*.add(new Beep())*/
                         .add(new DoubleWidthCharacters())
-                        .add(new PrintText("This is wide"))
-                        .add(new Flush())
+                        .add(new PrintText("This is wide\n"))
                         .add(new ClearPrinter())
                         .add(new Italic(Italic.ITALIC_ON))
-                        .add(new PrintText("This is italic"))
-                        .add(new Flush())
+                        .add(new PrintText("This is italic\n"))
                         .add(new Italic(Italic.ITALIC_OFF))
                         .add(new ReversePrintMode(ReversePrintMode.REVERSE_ON))
-                        .add(new PrintText("This is reversed"))
-                        .add(new Flush())
+                        .add(new PrintText("This is reversed\n"))
                         .add(new ReversePrintMode(ReversePrintMode.REVERSE_OFF))
                         .add(new Bold(Bold.BOLD_ON))
-                        .add(new PrintText("This is bold"))
-                        .add(new Flush())
-                        .add(new Bold(Bold.BOLD_ON))
+                        .add(new PrintText("This is bold\n"))
+                        .add(new Bold(Bold.BOLD_OFF))
                         .add(new Justify(Justify.JUSTIFY_RIGHT))
                         .add(new PrintText("Justify right\n"))
-                        .add(new Justify(Justify.JUSTIFY_RIGHT))
                         .add(new Justify(Justify.JUSTIFY_CENTRE))
                         .add(new PrintText("Justify centre\n"))
-                        .add(new Justify(Justify.JUSTIFY_CENTRE))
                         .add(new Justify(Justify.JUSTIFY_LEFT))
                         .add(new PrintText("Justify left\n"))
-                        .add(new Justify(Justify.JUSTIFY_LEFT))
+                        .add(new PrintText("............................................\n"))
+                        .add(new PrintText("1 x Bionic Arm                         £1.99\n"))
                        /* .add(new OpenDrawer())*/
-                        .add(new Flush())
+                        .add(new PrintBitmap())
                         .add(new FeedPaper(10))
                         .add(new CutPaper(CutPaper.CUT_FULL))
-                        .add(new FeedPaper(10));
+                        .add(new FeedPaper(2));
 
                 MePOS hub = new MePOS(mPort, mUsbManager);
 
                 try
                 {
+                    hub.print(imageQueue);
                     hub.print(queue);
                 } catch (MePOSResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
                 {
                     e.printStackTrace();
                 }
@@ -249,7 +323,7 @@ public class MainActivityFragment extends Fragment
 
     protected void probe()
     {
-        if(mPort == null && mEntries.isEmpty())
+        if (mPort == null && mEntries.isEmpty())
             return;
 
        /* if(mPort == null)
@@ -269,7 +343,7 @@ public class MainActivityFragment extends Fragment
         //Here we go!
 
         //Let's get the date/time
-        try
+  /*      try
         {
             Log.d(TAG, "Getting date time");
             Date hubDate = hub.getDateTime();
@@ -311,15 +385,25 @@ public class MainActivityFragment extends Fragment
             // Prolly OK to just ignore it
             e.printStackTrace();
         }
-
+*/
         //OK, this one is a little different.  This call returns a SystemInformation object
         //with many properites
 
-
+        SystemInformation systemInformation = null;
         try
         {
-            SystemInformation systemInformation = hub.getSystemInformation();
+            systemInformation = hub.getSystemInformation();
 
+        } catch (MePOSResponseException e)
+        {
+            e.printStackTrace();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        if (systemInformation != null)
+        {
             TextView tv = (TextView) getActivity().findViewById(R.id.systemType);
             tv.setText(systemInformation.getType());
 
@@ -329,11 +413,11 @@ public class MainActivityFragment extends Fragment
             tv = (TextView) getActivity().findViewById(R.id.deviceVariant);
             tv.setText(formatBytes(systemInformation.getVariant()));
 
-            tv = (TextView) getActivity().findViewById(R.id.supplierCode);
+/*            tv = (TextView) getActivity().findViewById(R.id.supplierCode);
             tv.setText(formatBytes(systemInformation.getSupplier()));
 
             tv = (TextView) getActivity().findViewById(R.id.customerCode);
-            tv.setText(formatBytes(systemInformation.getCustomerCode()));
+            tv.setText(formatBytes(systemInformation.getCustomerCode()));*/
 
             tv = (TextView) getActivity().findViewById(R.id.fwRevNo);
             tv.setText(systemInformation.getFWRevision());
@@ -351,12 +435,45 @@ public class MainActivityFragment extends Fragment
 
             tv = (TextView) getActivity().findViewById(R.id.lastDate);
             tv.setText(df.format(systemInformation.getLastDate()));
+        }
 
+        try
+        {
+            TextView tv = (TextView) getActivity().findViewById(R.id.paperStatus);
+            if(hub.hasPaper())
+            {
+                tv.setText("Printer has paper");
+            }
+            else
+            {
+                tv.setText("Printer has run out of paper");
+            }
         } catch (MePOSResponseException e)
+        {
+            e.printStackTrace();
+        } catch (IOException e)
         {
             e.printStackTrace();
         }
 
+        try
+        {
+            TextView tv = (TextView) getActivity().findViewById(R.id.cashDrawer);
+            if(hub.isCashDrawerOpen())
+            {
+                tv.setText("Cash drawer is open");
+            }
+            else
+            {
+                tv.setText("Cash drawer is closed");
+            }
+        } catch (MePOSResponseException e)
+        {
+            e.printStackTrace();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     protected String formatBytes(byte[] data)

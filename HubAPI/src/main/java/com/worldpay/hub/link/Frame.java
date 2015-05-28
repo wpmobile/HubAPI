@@ -1,7 +1,10 @@
 package com.worldpay.hub.link;
+import android.util.Log;
+
 import com.worldpay.hub.Checksum;
 import com.worldpay.hub.commands.Command;
 import com.worldpay.hub.Checksum;
+import com.worldpay.hub.util.HexDump;
 
 /**
  * Represents a single frame to be transmitted
@@ -73,15 +76,29 @@ public class Frame
             buffer[c++] = (byte) (0x7F & (tempLen >> 7));
         }
 
+      /*  int testLen = 1962;
+        byte byte1 = (byte) (0x80 | (testLen & 0x7F));
+        byte byte2 = (byte) (0x7F & (testLen >> 7));
+
+        Log.d("MePOS", String.format("Byte 1 (LSB): %02X Byte 2 (MSB): %02X", byte1, byte2));
+
+        if(byte1 == 0xAA && byte2 == 0x0F)
+            Log.d("MePOS", "Length calculation is correct");*/
+
         //Copy the data
         System.arraycopy(data, 0, buffer, c, data.length);
 
         //Append the CRC
         buffer = appendCRC(buffer, Checksum.generate(buffer));
 
+        Log.d("MePOS", "Raw data follows");
+        HexDump.logHexString(buffer, 0, buffer.length);
+
         //Escape the data
         mData = escapeFrame(buffer);
 
+        Log.d("MePOS", "Unescaped data follows");
+        HexDump.logHexString(mData, 0, mData.length);
     }
 
     public Frame()
@@ -108,7 +125,15 @@ public class Frame
 
     protected byte[] escapeFrame(byte[] data)
     {
-        byte[] buffer = new byte[calcDataLength(data)];
+        int reqDataLen = requiredDataLength(data);
+
+        //If we don't need to escape the data, then return the input data
+        if(reqDataLen == data.length)
+            return data;
+
+        Log.d("MePOS", String.format("Orig data len: %d  Escaped data len: %d", data.length, reqDataLen));
+
+        byte[] buffer = new byte[reqDataLen];
 
         int c = 0;
         for(byte b : data)
@@ -130,19 +155,23 @@ public class Frame
     /*
     * The required number of bytes required to escape the provided data
     */
-    protected int calcDataLength(byte[] data)
+    public int requiredDataLength(byte[] data)
     {
         //Check each byte for a 0x20 byte or 0x10 byte
-
+        Log.d("MePOS", "Calculating required number of bytes to hold escaped data");
+        Log.d("MePOS", String.format("Original length: %d", data.length));
         int len = 0;
         for(byte b : data)
         {
             if(len > 0 && (b == STX || b == DLE)) //Ignore first byte
+            {
                 len++;
+            }
 
             len++;
         }
 
+        Log.d("MePOS", String.format("Escaped length: %d", len));
         return len;
     }
 

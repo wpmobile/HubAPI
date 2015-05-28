@@ -3,6 +3,7 @@ import android.util.Log;
 
 import com.worldpay.hub.commands.Command;
 import com.worldpay.hub.link.Envelope;
+import com.worldpay.hub.usbserial.util.HexDump;
 
 import java.nio.ByteBuffer;
 
@@ -47,64 +48,68 @@ public class ResponseParser
         //Its important that this method is not initialised when called, state must be
         //maintained between calls.
 
+     //   Log.d("MePOS", "Raw data follows");
+     //   Log.d("MePOS", HexDump.dumpHexString(data, 0, data.length));
         byte[] unescapedData = unescape(data);
+
+     //   Log.d("MePOS", "Unescaped data follows");
+     //   Log.d("MePOS", HexDump.dumpHexString(unescapedData, 0, unescapedData.length));
 
         //Validate the checksum
         if(!validate(unescapedData))
             return null;
 
+        startNewFrame();
         for(byte b : unescapedData)
         {
-            if(b == STX)
+            if(mExpectedState == STATE_START && b == STX)
             {
-                //Start of frame
-                startNewFrame();
+                //Header byte, we've already unescaped, so we might hit other STX bytes in the data
+                //now.  That's completely valid
+                mExpectedState = STATE_LENGTH;
             }
-            else
-            {
-                if(mExpectedState == STATE_LENGTH) {
-                    addLength(b);
+            else if(mExpectedState == STATE_LENGTH) {
+                addLength(b);
+            }
+            else {
+                switch (mExpectedState) {
+
+                    case STATE_ADDRESS:
+                        if (mCurrentEnvelope != null) {
+                            mCurrentEnvelope.setAddress(b);
+                            mExpectedState = STATE_SOURCE;
+                        }
+                        break;
+                    case STATE_SOURCE:
+                        if (mCurrentEnvelope != null) {
+                            mCurrentEnvelope.setSource(b);
+                            mExpectedState = STATE_COMMAND_CODE;
+                        }
+                        break;
+                    case STATE_COMMAND_CODE:
+                        mCurrentCommand = Command.getCommand((char)b);
+                        mExpectedState = STATE_TAG;
+                        break;
+                    case STATE_TAG:
+                        if (mCurrentEnvelope != null) {
+                            mCurrentEnvelope.setTag(b);
+                            mExpectedState = STATE_COMMAND_DATA;
+                        }
+                        break;
+                    case STATE_COMMAND_DATA:
+                        addCommandData(b);
+                        break;
+                    case STATE_CHECKSUM:
+                        //Do nothing, already validated
+                        break;
                 }
-                else {
-                    switch (mExpectedState) {
 
-                        case STATE_ADDRESS:
-                            if (mCurrentEnvelope != null) {
-                                mCurrentEnvelope.setAddress(b);
-                                mExpectedState = STATE_SOURCE;
-                            }
-                            break;
-                        case STATE_SOURCE:
-                            if (mCurrentEnvelope != null) {
-                                mCurrentEnvelope.setSource(b);
-                                mExpectedState = STATE_COMMAND_CODE;
-                            }
-                            break;
-                        case STATE_COMMAND_CODE:
-                            mCurrentCommand = Command.getCommand((char)b);
-                            mExpectedState = STATE_TAG;
-                            break;
-                        case STATE_TAG:
-                            if (mCurrentEnvelope != null) {
-                                mCurrentEnvelope.setTag(b);
-                                mExpectedState = STATE_COMMAND_DATA;
-                            }
-                            break;
-                        case STATE_COMMAND_DATA:
-                            addCommandData(b);
-                            break;
-                        case STATE_CHECKSUM:
-                            //Do nothing, already validated
-                            break;
-                    }
+                mCurrentLength++;
 
-                    mCurrentLength++;
-
-                    if(mCurrentLength == mFrameLength)
-                    {
-                        //We've read the expected data
-                        mExpectedState = STATE_CHECKSUM;
-                    }
+                if(mCurrentLength == mFrameLength)
+                {
+                    //We've read the expected data
+                    mExpectedState = STATE_CHECKSUM;
                 }
             }
         }
@@ -126,14 +131,17 @@ public class ResponseParser
         System.arraycopy(data, 0, validateData, 0, len - 2);
         int crc = Checksum.generate(validateData);
 
+        Log.d("MePOS", String.format("I reckon the checksum should be %04X", crc));
+
         //The last two bytes make the checksum we need to compare
         int testCrc = (byte)(data[len - 2] & 0xFF);
         testCrc = testCrc << 8;
         testCrc += (byte)(data[len - 1] & 0xFF);
         testCrc = testCrc & 0xFFFF;
-        // return (crc == testCrc);
+        Log.d("MePOS", String.format("The data has a checksum of %02X%02X",
+                            data[len - 2] & 0xFF, data[len - 1] & 0xFF));
 
-        return true;
+        return (crc == testCrc);
     }
 
     protected void startNewFrame()
@@ -142,7 +150,7 @@ public class ResponseParser
         mCurrentCommand = new Command();
         mFrameLength = 0;
         mCurrentLength = 0;
-        mExpectedState = STATE_LENGTH;
+        mExpectedState = STATE_START;
     }
 
     protected void addLength(byte b)
@@ -154,6 +162,7 @@ public class ResponseParser
         }
         else
         {
+            //TODO:  This doesn't calculate the length for responses > 127 bytes correctly
             //Only expecting one byte, or it is the second byte
             mFrameLength += b;
             mExpectedState = STATE_ADDRESS;
@@ -163,22 +172,38 @@ public class ResponseParser
 
     protected byte[] unescape(byte[] data)
     {
-        ByteBuffer buffer = ByteBuffer.allocate(data.length);
-        buffer.put(data[0]);
-        //init of i = 1 is deliberate.  don't escape the first byte (STX)
+        //First pass - determine length
+        int len = 1;
 
+        for(int i = 1; i < data.length; i++)
+        {
+            if (data[i] != DLE)
+            {
+                len++;
+            }
+        }
+
+        Log.d("MePOS", String.format("Raw data is %d bytes, unescaped %d", data.length, len));
+
+        ByteBuffer buffer = ByteBuffer.allocate(len);
+        buffer.put(data[0]);
+
+        //Second pass, copy data
+        //init of i = 1 is deliberate.  don't escape the first byte (STX)
+        boolean flipByte = false;
         for(int i = 1; i < data.length; i++)
         {
             if(data[i] == DLE)
             {
-                if(data.length <= i+1)
-                {
-                    data[i] = (byte)(data[1] & (byte)0xBF); //Mask out bit 6
-                }
+                flipByte = true;
             }
             else
             {
-               buffer.put(data[i]);
+                byte b = data[i];
+                if(flipByte)
+                    b = (byte)(b & 0xBF);
+                buffer.put(b);
+                flipByte = false;
             }
         }
 

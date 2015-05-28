@@ -178,46 +178,6 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Supplier Code"
-        android:id="@+id/supplierCodeTitle"
-        android:layout_below="@+id/deviceVariantTitle"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Unknown"
-        android:id="@+id/supplierCode"
-        android:layout_below="@+id/deviceVariant"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Customer Code"
-        android:id="@+id/customerCodeTitle"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_below="@+id/supplierCodeTitle"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Unknown"
-        android:id="@+id/customerCode"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_below="@+id/supplierCode"/>
-
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -233,9 +193,9 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Document Number"
         android:id="@+id/docNoTitle"
-        android:layout_below="@+id/customerCodeTitle"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/deviceVariantTitle"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -329,7 +289,48 @@
         android:layout_height="wrap_content"
         android:text="Print Test"
         android:id="@+id/printTest"
+        android:layout_alignTop="@+id/probe"
+        android:layout_toRightOf="@+id/probe"
+        android:layout_toEndOf="@+id/probe"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Cash drawer status is unknown"
+        android:id="@+id/cashDrawer"
+        android:layout_marginTop="36dp"
         android:layout_below="@+id/lastDateTitle"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Paper status is unknown"
+        android:id="@+id/paperStatus"
+        android:layout_below="@+id/cashDrawer"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Open Cash Drawer"
+        android:id="@+id/openDrawer"
+        android:layout_below="@+id/paperStatus"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Printer Feed"
+        android:id="@+id/printerFeed"
+        android:layout_alignTop="@+id/openDrawer"
+        android:layout_toRightOf="@+id/openDrawer"
+        android:layout_toEndOf="@+id/openDrawer"/>
+
 </RelativeLayout>

@@ -1,5 +1,7 @@
 package com.worldpay.hub.printer.commands;
 
+import java.io.UnsupportedEncodingException;
+
 public class PrintText extends PrinterCommand
 {
     public PrintText()
@@ -14,6 +16,12 @@ public class PrintText extends PrinterCommand
 
     protected void init(String text)
     {
-        mData = text.getBytes();
+        try
+        {
+            mData = text.getBytes("ISO-8859-1");
+        } catch (UnsupportedEncodingException e)
+        {
+            e.printStackTrace();
+        }
     }
 }
