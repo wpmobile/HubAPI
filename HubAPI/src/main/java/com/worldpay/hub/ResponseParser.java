@@ -131,15 +131,11 @@ public class ResponseParser
         System.arraycopy(data, 0, validateData, 0, len - 2);
         int crc = Checksum.generate(validateData);
 
-        Log.d("MePOS", String.format("I reckon the checksum should be %04X", crc));
-
         //The last two bytes make the checksum we need to compare
         int testCrc = (byte)(data[len - 2] & 0xFF);
         testCrc = testCrc << 8;
         testCrc += (byte)(data[len - 1] & 0xFF);
         testCrc = testCrc & 0xFFFF;
-        Log.d("MePOS", String.format("The data has a checksum of %02X%02X",
-                            data[len - 2] & 0xFF, data[len - 1] & 0xFF));
 
         return (crc == testCrc);
     }
@@ -182,8 +178,6 @@ public class ResponseParser
                 len++;
             }
         }
-
-        Log.d("MePOS", String.format("Raw data is %d bytes, unescaped %d", data.length, len));
 
         ByteBuffer buffer = ByteBuffer.allocate(len);
         buffer.put(data[0]);

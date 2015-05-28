@@ -463,7 +463,7 @@ public class MePOS
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
 
-        Log.d(TAG, "Link established");
+        //Log.d(TAG, "Link established");
 
         if (connection == null) {
             Log.d(TAG, "Opening device failed");
@@ -513,22 +513,22 @@ public class MePOS
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Read some data, not waiting for further responses");
+                //Log.d(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Timeout, not waiting for further responses");
+                //Log.d(TAG, "Timeout, not waiting for further responses");
             }
 
-            Log.d(TAG, String.format("Read %d bytes", bytesRead));
-            Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+            //Log.d(TAG, String.format("Read %d bytes", bytesRead));
+            //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
-                Log.d(TAG, "********************************************");
-                Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Log.d(TAG, "********************************************");
+                //Log.d(TAG, "********************************************");
+                //Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
+                //Log.d(TAG, "********************************************");
 
                 //Just take the response bytes
                 byte[] responseBytes = new byte[bytesRead];

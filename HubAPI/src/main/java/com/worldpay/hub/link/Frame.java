@@ -91,14 +91,14 @@ public class Frame
         //Append the CRC
         buffer = appendCRC(buffer, Checksum.generate(buffer));
 
-        Log.d("MePOS", "Raw data follows");
-        HexDump.logHexString(buffer, 0, buffer.length);
+        //Log.d("MePOS", "Raw data follows");
+        //HexDump.logHexString(buffer, 0, buffer.length);
 
         //Escape the data
         mData = escapeFrame(buffer);
 
-        Log.d("MePOS", "Unescaped data follows");
-        HexDump.logHexString(mData, 0, mData.length);
+       // Log.d("MePOS", "Unescaped data follows");
+      //  HexDump.logHexString(mData, 0, mData.length);
     }
 
     public Frame()
@@ -131,7 +131,7 @@ public class Frame
         if(reqDataLen == data.length)
             return data;
 
-        Log.d("MePOS", String.format("Orig data len: %d  Escaped data len: %d", data.length, reqDataLen));
+      //  Log.d("MePOS", String.format("Orig data len: %d  Escaped data len: %d", data.length, reqDataLen));
 
         byte[] buffer = new byte[reqDataLen];
 
@@ -158,8 +158,8 @@ public class Frame
     public int requiredDataLength(byte[] data)
     {
         //Check each byte for a 0x20 byte or 0x10 byte
-        Log.d("MePOS", "Calculating required number of bytes to hold escaped data");
-        Log.d("MePOS", String.format("Original length: %d", data.length));
+       // Log.d("MePOS", "Calculating required number of bytes to hold escaped data");
+       // Log.d("MePOS", String.format("Original length: %d", data.length));
         int len = 0;
         for(byte b : data)
         {
@@ -171,7 +171,7 @@ public class Frame
             len++;
         }
 
-        Log.d("MePOS", String.format("Escaped length: %d", len));
+      //  Log.d("MePOS", String.format("Escaped length: %d", len));
         return len;
     }
 

@@ -32,7 +32,7 @@ public class Checksum
         }
 
         crc &= 0xffff;
-        Log.d(TAG, Integer.toHexString(crc));
+        //Log.d(TAG, Integer.toHexString(crc));
         return crc;
     }
 }
