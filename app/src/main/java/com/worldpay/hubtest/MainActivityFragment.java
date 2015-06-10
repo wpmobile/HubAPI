@@ -343,7 +343,7 @@ public class MainActivityFragment extends Fragment
         //Here we go!
 
         //Let's get the date/time
-  /*      try
+        try
         {
             Log.d(TAG, "Getting date time");
             Date hubDate = hub.getDateTime();
@@ -357,6 +357,9 @@ public class MainActivityFragment extends Fragment
         catch(MePOSResponseException e)
         {
             // Prolly OK to just ignore it
+        } catch (IOException e)
+        {
+            e.printStackTrace();
         }
 
         //Cool beans, now lets try the serial number!
@@ -371,6 +374,9 @@ public class MainActivityFragment extends Fragment
         {
             // Prolly OK to just ignore it
             e.printStackTrace();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
         }
 
         //Get version for the hat-trick
@@ -384,12 +390,16 @@ public class MainActivityFragment extends Fragment
         {
             // Prolly OK to just ignore it
             e.printStackTrace();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
         }
-*/
+
         //OK, this one is a little different.  This call returns a SystemInformation object
         //with many properites
 
         SystemInformation systemInformation = null;
+
         try
         {
             systemInformation = hub.getSystemInformation();
@@ -401,6 +411,7 @@ public class MainActivityFragment extends Fragment
         {
             e.printStackTrace();
         }
+
 
         if (systemInformation != null)
         {
