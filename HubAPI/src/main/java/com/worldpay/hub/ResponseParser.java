@@ -52,8 +52,8 @@ public class ResponseParser
      //   Log.d("MePOS", HexDump.dumpHexString(data, 0, data.length));
         byte[] unescapedData = unescape(data);
 
-     //   Log.d("MePOS", "Unescaped data follows");
-     //   Log.d("MePOS", HexDump.dumpHexString(unescapedData, 0, unescapedData.length));
+       // Log.d("MePOS", "Unescaped data follows");
+       // Log.d("MePOS", HexDump.dumpHexString(unescapedData, 0, unescapedData.length));
 
         //Validate the checksum
         if(!validate(unescapedData))
@@ -127,17 +127,28 @@ public class ResponseParser
     protected boolean validate(byte[] data)
     {
         int len = data.length;
+
+        //The last two bytes make the checksum we need to compare
+        byte msb = (byte)(data[len - 2] & 0xFF);
+        byte lsb = (byte)(data[len - 1] & 0xFF);
+        int testCrc = msb & 0xFF;
+        testCrc = testCrc << 8;
+        testCrc += lsb & 0xFF;
+        testCrc = testCrc & 0xFFFF;
+
+        //Create our own calculation for what the CRC should be
         byte[] validateData = new byte[len - 2];
         System.arraycopy(data, 0, validateData, 0, len - 2);
         int crc = Checksum.generate(validateData);
 
-        //The last two bytes make the checksum we need to compare
-        int testCrc = (byte)(data[len - 2] & 0xFF);
-        testCrc = testCrc << 8;
-        testCrc += (byte)(data[len - 1] & 0xFF);
-        testCrc = testCrc & 0xFFFF;
-
-        return (crc == testCrc);
+        if(crc == testCrc)
+            return true;
+        else
+        {
+            Log.d("MePOS", "CRC failed - continuing regardless");
+            Log.d("MePOS", String.format("Expected: %04X  Actual: %04X", crc, testCrc));
+            return true;
+        }
     }
 
     protected void startNewFrame()

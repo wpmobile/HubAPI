@@ -372,7 +372,7 @@ public class MePOS
     {
         ArrayList<Command> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_PRINTER).getData()),
                                                     PRINTER_ADDRESS,
-                                                    0 /* no timeout */);
+                                                    DEFAULT_TIMEOUT);
         RawData raw = null;
 
         boolean hasPaper = true;
@@ -385,8 +385,8 @@ public class MePOS
                 {
                     //Get the first byte and test the flag
                     byte responseStatus = command.getCommandData()[0];
-                    //0x00 means that it has paper, 0x01 means that it is empty
-                    hasPaper = !((responseStatus & 0x01) == 0x01);
+                    //0x00 means that it has paper, anything else means that it is empty
+                    hasPaper = (responseStatus == 0x00);
                 }
                 else
                 {
@@ -410,7 +410,7 @@ public class MePOS
     {
         ArrayList<Command> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_CASH_DRAWER).getData()),
                                                     PRINTER_ADDRESS,
-                                                    0 /* no timeout */);
+                                                    DEFAULT_TIMEOUT);
         RawData raw = null;
 
         boolean drawerOpen = true;
@@ -513,17 +513,17 @@ public class MePOS
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-                //Log.d(TAG, "Read some data, not waiting for further responses");
+               // Log.d(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-                //Log.d(TAG, "Timeout, not waiting for further responses");
+               // Log.d(TAG, "Timeout, not waiting for further responses");
             }
 
-            //Log.d(TAG, String.format("Read %d bytes", bytesRead));
-            //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+           // Log.d(TAG, String.format("Read %d bytes", bytesRead));
+           // Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
                 //Log.d(TAG, "********************************************");
@@ -565,6 +565,7 @@ public class MePOS
             Log.d("MePOS", "Could not deserialise command");
             Log.d("MePOS", HexDump.dumpHexString(response, 0, Math.min(32, response.length)));
 
+            e.printStackTrace();
             throw new MePOSResponseException("Cannot deserialise command", e);
         }
         return c;
