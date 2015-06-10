@@ -466,7 +466,9 @@ public class MePOS
         //Log.d(TAG, "Link established");
 
         if (connection == null) {
-            Log.d(TAG, "Opening device failed");
+            IOException e = new IOException();
+            Log.e(TAG, "Opening device failed", e);
+            throw e;
         }
 
         mPort.open(connection);
