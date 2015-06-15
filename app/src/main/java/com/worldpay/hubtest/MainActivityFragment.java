@@ -1,23 +1,17 @@
 package com.worldpay.hubtest;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.SystemClock;
-import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,24 +19,21 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.worldpay.hub.MePOS;
 import com.worldpay.hub.MePOSResponseException;
 import com.worldpay.hub.commands.SystemInformation;
 import com.worldpay.hub.printer.PrinterQueue;
-import com.worldpay.hub.printer.commands.Beep;
 import com.worldpay.hub.printer.commands.Bold;
 import com.worldpay.hub.printer.commands.ClearPrinter;
 import com.worldpay.hub.printer.commands.CutPaper;
 import com.worldpay.hub.printer.commands.DoubleWidthCharacters;
 import com.worldpay.hub.printer.commands.DownloadBitmap;
 import com.worldpay.hub.printer.commands.FeedPaper;
-import com.worldpay.hub.printer.commands.Flush;
 import com.worldpay.hub.printer.commands.Italic;
 import com.worldpay.hub.printer.commands.Justify;
-import com.worldpay.hub.printer.commands.OpenDrawer;
 import com.worldpay.hub.printer.commands.PrintBitmap;
 import com.worldpay.hub.printer.commands.PrintText;
 import com.worldpay.hub.printer.commands.ReversePrintMode;
@@ -51,8 +42,6 @@ import com.worldpay.hub.printer.commands.Underline;
 import com.worldpay.hub.usbserial.driver.UsbSerialDriver;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 import com.worldpay.hub.usbserial.driver.UsbSerialProber;
-import com.worldpay.hub.MePOS;
-import com.worldpay.hub.util.HexDump;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -221,8 +210,6 @@ public class MainActivityFragment extends Fragment
                     InputStream is = getResources().openRawResource(R.raw.tr1);
                     picture = new byte[is.available()];
                     int read = is.read(picture);
-
-
                 } catch (IOException e)
                 {
                     e.printStackTrace();
@@ -230,7 +217,6 @@ public class MainActivityFragment extends Fragment
 
                 PrinterQueue imageQueue = new PrinterQueue();
                 imageQueue.add(new DownloadBitmap(picture));
-
 
                 PrinterQueue queue = new PrinterQueue();
                 queue.add(new ClearPrinter())
@@ -282,7 +268,6 @@ public class MainActivityFragment extends Fragment
             }
 
         });
-
 
         mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, 2000);
     }

@@ -45,7 +45,7 @@ public class MePOS
     protected final static int MAX_FRAMESIZE = 16389; //
     protected final static int MAX_DATASIZE  = 32000; //
 
-    protected final static int CHUNKSIZE = 2048; //Max number of bytes to send
+    protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
 
     public MePOS(UsbSerialPort port, UsbManager manager)
     {
@@ -331,7 +331,7 @@ public class MePOS
             System.arraycopy(buffer, offset, sendBuffer, 0, len);
 
             //Send this buffer
-            executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, 0 /* no timeout */);
+            executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT);
 
             offset += len;
         }
@@ -345,7 +345,7 @@ public class MePOS
     {
         executeCommand(new RawData(new OpenDrawer().getData()),
                         PRINTER_ADDRESS,
-                        0 /* no timeout */);
+                        DEFAULT_TIMEOUT);
     }
 
     /**
@@ -357,11 +357,11 @@ public class MePOS
     {
         executeCommand(new RawData(new FeedPaper(lines).getData()),
                         PRINTER_ADDRESS,
-                        0 /* no timeout */);
+                        DEFAULT_TIMEOUT);
 
         executeCommand(new RawData(new Flush().getData()),
                         PRINTER_ADDRESS,
-                        0 /* no timeout */);
+                        DEFAULT_TIMEOUT);
     }
 
     /**
@@ -463,7 +463,7 @@ public class MePOS
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
 
-        //Log.d(TAG, "Link established");
+        Log.d(TAG, "Link established");
 
         if (connection == null) {
             IOException e = new IOException();
@@ -476,9 +476,10 @@ public class MePOS
 
         byte[] dataToSend = frames[0].getFrameData();
 
-        //Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, Math.min(32, dataToSend.length)));
+        Log.d(TAG, String.format("Writing"));
+        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
         int writeLen = mPort.write(dataToSend, timeout);
-        //Log.d(TAG, String.format("Wrote %d bytes", writeLen));
+        Log.d(TAG, String.format("Wrote %d bytes", writeLen));
 
         responses  = readResponses(timeout);
 
@@ -521,16 +522,16 @@ public class MePOS
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-               // Log.d(TAG, "Timeout, not waiting for further responses");
+                Log.d(TAG, "Timeout, not waiting for further responses");
             }
 
-           // Log.d(TAG, String.format("Read %d bytes", bytesRead));
-           // Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+            //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
                 //Log.d(TAG, "********************************************");
                 //Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
                 //Log.d(TAG, "********************************************");
+                Log.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes
                 byte[] responseBytes = new byte[bytesRead];
@@ -538,6 +539,10 @@ public class MePOS
                 //Deserialise response into a command
                 Command c = deserialise(responseBytes);
                 responses.add(c);
+            }
+            else
+            {
+                Log.d(TAG, "Read 0 bytes");
             }
         }
 
@@ -565,7 +570,7 @@ public class MePOS
         {
             Log.d("MePOS", "Fatal error");
             Log.d("MePOS", "Could not deserialise command");
-            Log.d("MePOS", HexDump.dumpHexString(response, 0, Math.min(32, response.length)));
+            Log.d("MePOS", HexDump.dumpHexString(response, 0, response.length));
 
             e.printStackTrace();
             throw new MePOSResponseException("Cannot deserialise command", e);
