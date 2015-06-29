@@ -43,7 +43,7 @@ public class MePOS
 
     protected final static int DEFAULT_TIMEOUT = 1000; //1 second
     protected final static int MAX_FRAMESIZE = 16389; //
-    protected final static int MAX_DATASIZE  = 32000; //
+    protected final static int MAX_DATASIZE  = 65536; //
 
     protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
 
