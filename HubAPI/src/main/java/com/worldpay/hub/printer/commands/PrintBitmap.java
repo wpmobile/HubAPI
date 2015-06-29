@@ -7,6 +7,16 @@ public class PrintBitmap extends PrinterCommand
 {
     public PrintBitmap()
     {
-        mData = new byte[] { 0x1D, 0x2F, 0x00, 0x00 };
+        init(0);
+    }
+
+    public PrintBitmap(int index)
+    {
+        init(index);
+    }
+
+    private void init(int index)
+    {
+        mData = new byte[] { 0x1D, 0x2F, (byte) index, 0x00 };
     }
 }
