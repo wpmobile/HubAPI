@@ -10,7 +10,7 @@ public class SelectMemory extends PrinterCommand
 
     public SelectMemory()
     {
-        mData = new byte[] { 0x1D, 0x22, MEMORY_RAM};
+        mData = new byte[] { 0x1D, 0x22, MEMORY_FLASH};
     }
 
     public SelectMemory(byte memoryLocation)

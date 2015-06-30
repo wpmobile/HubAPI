@@ -16,7 +16,7 @@ public class DownloadBitmap extends PrinterCommand
     {
         mData = new byte[bitmap.length + 4];
         mData[3] = 0x1D;
-        mData[3] = 0x22;
+        mData[3] = 0x23;         /* Change logo index command */
         mData[3] = (byte) index; /* Set the image index number */
         mData[3] = 0x1B;         /* Add the bitmap data */
         System.arraycopy(bitmap, 0, mData, 1, bitmap.length);
