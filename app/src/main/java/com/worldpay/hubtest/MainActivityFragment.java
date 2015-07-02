@@ -21,9 +21,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import com.worldpay.hub.MePOS;
 import com.worldpay.hub.MePOSResponseException;
+import com.worldpay.hub.commands.SetPort;
 import com.worldpay.hub.commands.SystemInformation;
 import com.worldpay.hub.printer.PrinterQueue;
 import com.worldpay.hub.printer.commands.Bold;
@@ -37,6 +39,7 @@ import com.worldpay.hub.printer.commands.Justify;
 import com.worldpay.hub.printer.commands.PrintBitmap;
 import com.worldpay.hub.printer.commands.PrintText;
 import com.worldpay.hub.printer.commands.ReversePrintMode;
+import com.worldpay.hub.printer.commands.SelectMemory;
 import com.worldpay.hub.printer.commands.SetCodePage;
 import com.worldpay.hub.printer.commands.Underline;
 import com.worldpay.hub.usbserial.driver.UsbSerialDriver;
@@ -66,6 +69,8 @@ public class MainActivityFragment extends Fragment
     private Button mPrintTest;
     private Button mDrawer;
     private Button mPrinterFeed;
+    private ToggleButton mHighSpeed;
+
     static final int REQUEST_IMAGE_CAPTURE = 1;
     public static final int CAPTURE_IMAGE_THUMBNAIL_ACTIVITY_REQUEST_CODE = 1888;
 
@@ -115,6 +120,8 @@ public class MainActivityFragment extends Fragment
     public void onActivityCreated(Bundle savedInstanceState)
     {
         super.onActivityCreated(savedInstanceState);
+
+        mHighSpeed = (ToggleButton)getActivity().findViewById(R.id.highSpeed);
 
         mUsbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
 
@@ -216,7 +223,8 @@ public class MainActivityFragment extends Fragment
                 }
 
                 PrinterQueue imageQueue = new PrinterQueue();
-                imageQueue.add(new DownloadBitmap(picture));
+                imageQueue.add(new SelectMemory(SelectMemory.MEMORY_RAM))
+                          .add(new DownloadBitmap(picture, 1));
 
                 PrinterQueue queue = new PrinterQueue();
                 queue.add(new ClearPrinter())
@@ -247,12 +255,26 @@ public class MainActivityFragment extends Fragment
                         .add(new PrintText("............................................\n"))
                         .add(new PrintText("1 x Bionic Arm                         £1.99\n"))
                        /* .add(new OpenDrawer())*/
-                        .add(new PrintBitmap())
+                        .add(new PrintBitmap(1))
                         .add(new FeedPaper(10))
                         .add(new CutPaper(CutPaper.CUT_FULL))
                         .add(new FeedPaper(2));
 
                 MePOS hub = new MePOS(mPort, mUsbManager);
+
+                try
+                {
+                    if(mHighSpeed.isChecked())
+                        hub.setPrinterBaudRate(SetPort.BAUD_115200);
+                    else
+                        hub.setPrinterBaudRate(SetPort.BAUD_57600);
+                } catch (MePOSResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
 
                 try
                 {
