@@ -145,9 +145,9 @@ public class ResponseParser
             return true;
         else
         {
-            Log.d("MePOS", "CRC failed - continuing regardless");
-            Log.d("MePOS", String.format("Expected: %04X  Actual: %04X", crc, testCrc));
-            return true;
+            Log.i("MePOS", "CRC failed");
+            Log.i("MePOS", String.format("Expected: %04X  Actual: %04X", crc, testCrc));
+            return false;
         }
     }
 

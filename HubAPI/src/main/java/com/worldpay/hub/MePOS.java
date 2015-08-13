@@ -12,6 +12,8 @@ import com.worldpay.hub.commands.Ping;
 import com.worldpay.hub.commands.RawData;
 import com.worldpay.hub.commands.Reset;
 import com.worldpay.hub.commands.SetClock;
+import com.worldpay.hub.commands.SetIO;
+import com.worldpay.hub.commands.SetPort;
 import com.worldpay.hub.commands.SetSystemInformation;
 import com.worldpay.hub.commands.SystemInformation;
 import com.worldpay.hub.link.Envelope;
@@ -40,12 +42,26 @@ public class MePOS
     protected final static byte HUB_ADDRESS = 0x18;
     protected final static byte PRINTER_ADDRESS = 0x12;
     protected final static byte TABLET_ADDRESS = 0x30;
+    protected final static byte IO_ADDRESS = 0x1B;
 
     protected final static int DEFAULT_TIMEOUT = 1000; //1 second
     protected final static int MAX_FRAMESIZE = 16389; //
     protected final static int MAX_DATASIZE  = 65536; //
 
     protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
+
+    //Diagnostic lights constants
+    public static final int COLOR_RED      = 1;
+    public static final int COLOR_GREEN    = 2;
+    public static final int COLOR_BLUE     = 4;
+
+    public static final int DIAGNOSTIC_LIGHT_1  = 1;
+    public static final int DIAGNOSTIC_LIGHT_2  = 4;
+    public static final int DIAGNOSTIC_LIGHT_3  = 16;
+    public static final int COSMETIC_LIGHT      = 256;
+
+    public static final int STATE_ON        = 1;
+    public static final int STATE_OFF       = 0;
 
     public MePOS(UsbSerialPort port, UsbManager manager)
     {
@@ -312,6 +328,62 @@ public class MePOS
         }
     }
 
+    /***
+     * Open the cash drawer via the MePOS board.  This no longer operates through the printer
+     * @throws MePOSResponseException
+     * @throws IOException
+     */
+    public void openCashDrawer() throws MePOSResponseException, IOException
+    {
+        SetIO setIO = new SetIO();
+        setIO.setValue(SetIO.CASH_DRAWER_RELEASE, true);
+        executeCommand(setIO, IO_ADDRESS, DEFAULT_TIMEOUT);
+        setIO.setValue(SetIO.CASH_DRAWER_RELEASE, false);
+        executeCommand(setIO, IO_ADDRESS, DEFAULT_TIMEOUT);
+
+        //Explorer mode
+/*        for(int i = 1; i < 8192; i = i * 2)
+        {
+            Log.i("MePOS", String.format("Trying a value of %d", i));
+            setIO.setValue(i, true);
+            executeCommand(setIO, IO_ADDRESS, DEFAULT_TIMEOUT);
+            setIO.setValue(i, false);
+            executeCommand(setIO, IO_ADDRESS, DEFAULT_TIMEOUT);
+        }*/
+    }
+
+    /***
+     * This is designed as a short cut to quickly turn the light off in 1 line.
+     * @param light
+     * @param state
+     * @throws MePOSResponseException
+     * @throws IOException
+     */
+    public void setDiagnosticLight(int light, int state) throws MePOSResponseException, IOException
+    {
+        if(light == COSMETIC_LIGHT)
+        {
+            setDiagnosticLight(COSMETIC_LIGHT, COLOR_RED, state);
+            setDiagnosticLight(COSMETIC_LIGHT, COLOR_GREEN, state);
+            setDiagnosticLight(COSMETIC_LIGHT, COLOR_BLUE, state);
+        }
+        else
+        {
+            setDiagnosticLight(light, COLOR_RED, state);
+            setDiagnosticLight(light, COLOR_GREEN, state);
+        }
+    }
+
+    public void setDiagnosticLight(int light, int colour, int state) throws MePOSResponseException, IOException
+    {
+        SetIO io = new SetIO();
+
+        //Cool huh?  Mulitplying the constants gives you the correct value for MePOS
+        io.setValue(light * colour, state == STATE_ON);
+
+        executeCommand(io, IO_ADDRESS, DEFAULT_TIMEOUT);
+    }
+
     private void flushToPrinter(ByteBuffer bb) throws MePOSResponseException, IOException
     {
         byte[] buffer = new byte[bb.position()];
@@ -341,12 +413,14 @@ public class MePOS
      * Issues a command to the printer to open the cash drawer
      * @throws MePOSResponseException
      */
+/*  THIS IS THE OLD VERSION TO OPEN THE CASH DRAWER FROM THE PRINTER
     public void openCashDrawer() throws MePOSResponseException, IOException
     {
         executeCommand(new RawData(new OpenDrawer().getData()),
-                        PRINTER_ADDRESS,
-                        DEFAULT_TIMEOUT);
+                PRINTER_ADDRESS,
+                DEFAULT_TIMEOUT);
     }
+*/
 
     /**
      * Instructs the printer to feed n lines.  This also flushes the printer buffer.
@@ -356,10 +430,6 @@ public class MePOS
     public void printerFeed(int lines) throws MePOSResponseException, IOException
     {
         executeCommand(new RawData(new FeedPaper(lines).getData()),
-                        PRINTER_ADDRESS,
-                        DEFAULT_TIMEOUT);
-
-        executeCommand(new RawData(new Flush().getData()),
                         PRINTER_ADDRESS,
                         DEFAULT_TIMEOUT);
     }
@@ -439,6 +509,13 @@ public class MePOS
         return drawerOpen;
     }
 
+    public void setPrinterBaudRate(int baudRate)throws MePOSResponseException, IOException
+    {
+        SetPort command = new SetPort();
+        command.setBaudRate(SetPort.BAUD_115200);
+        executeCommand(command);
+    }
+
     /**
      * Executes the command to the default address, and with the default timeout
      * @param c is the command to be executed
@@ -463,7 +540,7 @@ public class MePOS
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
 
-        Log.d(TAG, "Link established");
+        //Log.d(TAG, "Link established");
 
         if (connection == null) {
             IOException e = new IOException();
@@ -516,7 +593,7 @@ public class MePOS
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-               // Log.d(TAG, "Read some data, not waiting for further responses");
+                Log.d(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
@@ -528,9 +605,9 @@ public class MePOS
             //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
-                //Log.d(TAG, "********************************************");
-                //Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                //Log.d(TAG, "********************************************");
+                Log.d(TAG, "********************************************");
+                Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
+                Log.d(TAG, "********************************************");
                 Log.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes
@@ -539,10 +616,6 @@ public class MePOS
                 //Deserialise response into a command
                 Command c = deserialise(responseBytes);
                 responses.add(c);
-            }
-            else
-            {
-                Log.d(TAG, "Read 0 bytes");
             }
         }
 
@@ -569,11 +642,11 @@ public class MePOS
         catch(Exception e)
         {
             Log.d("MePOS", "Fatal error");
-            Log.d("MePOS", "Could not deserialise command");
+            Log.d("MePOS", "Could not deserialise response");
             Log.d("MePOS", HexDump.dumpHexString(response, 0, response.length));
 
             e.printStackTrace();
-            throw new MePOSResponseException("Cannot deserialise command", e);
+            //throw new MePOSResponseException("Cannot deserialise command", e);
         }
         return c;
     }

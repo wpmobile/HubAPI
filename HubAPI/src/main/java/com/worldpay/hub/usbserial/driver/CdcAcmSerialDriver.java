@@ -109,34 +109,34 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
             mConnection = connection;
             boolean opened = false;
             try {
-                Log.d(TAG, "claiming interfaces, count=" + mDevice.getInterfaceCount());
+                Log.v(TAG, "claiming interfaces, count=" + mDevice.getInterfaceCount());
                 mControlInterface = mDevice.getInterface(0);
-                Log.d(TAG, "Control iface=" + mControlInterface);
+                Log.v(TAG, "Control iface=" + mControlInterface);
                 // class should be USB_CLASS_COMM
 
                 if (!mConnection.claimInterface(mControlInterface, true)) {
                     throw new IOException("Could not claim control interface.");
                 }
                 mControlEndpoint = mControlInterface.getEndpoint(0);
-                Log.d(TAG, "Control endpoint direction: " + mControlEndpoint.getDirection());
+                Log.v(TAG, "Control endpoint direction: " + mControlEndpoint.getDirection());
 
-                Log.d(TAG, "Claiming data interface.");
+                Log.v(TAG, "Claiming data interface.");
                 mDataInterface = mDevice.getInterface(1);
-                Log.d(TAG, "data iface=" + mDataInterface);
+                Log.v(TAG, "data iface=" + mDataInterface);
                 // class should be USB_CLASS_CDC_DATA
 
                 if (!mConnection.claimInterface(mDataInterface, true)) {
                     throw new IOException("Could not claim data interface.");
                 }
-                Log.d(TAG, "Number of endpoints: " + mDataInterface.getEndpointCount());
+                Log.v(TAG, "Number of endpoints: " + mDataInterface.getEndpointCount());
                 mReadEndpoint = mDataInterface.getEndpoint(0);
-                Log.d(TAG, "Read endpoint direction: " + mReadEndpoint.getDirection());
+                Log.v(TAG, "Read endpoint direction: " + mReadEndpoint.getDirection());
                 mWriteEndpoint = mDataInterface.getEndpoint(1);
-                Log.d(TAG, "Write endpoint direction: " + mWriteEndpoint.getDirection());
+                Log.v(TAG, "Write endpoint direction: " + mWriteEndpoint.getDirection());
                 if (mEnableAsyncReads) {
-                  Log.d(TAG, "Async reads enabled");
+                  Log.v(TAG, "Async reads enabled");
                 } else {
-                  Log.d(TAG, "Async reads disabled.");
+                  Log.v(TAG, "Async reads disabled.");
                 }
                 opened = true;
             } finally {
