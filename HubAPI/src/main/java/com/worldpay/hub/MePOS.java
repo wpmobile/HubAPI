@@ -553,10 +553,10 @@ public class MePOS
 
         byte[] dataToSend = frames[0].getFrameData();
 
-        Log.d(TAG, String.format("Writing"));
-        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        Log.i(TAG, String.format("Writing"));
+        Log.i(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
         int writeLen = mPort.write(dataToSend, timeout);
-        Log.d(TAG, String.format("Wrote %d bytes", writeLen));
+        Log.i(TAG, String.format("Wrote %d bytes", writeLen));
 
         responses  = readResponses(timeout);
 
@@ -593,13 +593,13 @@ public class MePOS
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Read some data, not waiting for further responses");
+                Log.i(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Timeout, not waiting for further responses");
+                Log.i(TAG, "Timeout, not waiting for further responses");
             }
 
             //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
@@ -641,9 +641,9 @@ public class MePOS
         }
         catch(Exception e)
         {
-            Log.d("MePOS", "Fatal error");
-            Log.d("MePOS", "Could not deserialise response");
-            Log.d("MePOS", HexDump.dumpHexString(response, 0, response.length));
+            Log.i("MePOS", "Fatal error");
+            Log.i("MePOS", "Could not deserialise response");
+            Log.i("MePOS", HexDump.dumpHexString(response, 0, response.length));
 
             e.printStackTrace();
             //throw new MePOSResponseException("Cannot deserialise command", e);

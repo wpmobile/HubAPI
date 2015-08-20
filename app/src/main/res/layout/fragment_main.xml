@@ -12,15 +12,6 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Hub Settings"
-        android:id="@+id/title"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Serial Number"
         android:id="@+id/serialNumberTitle"
@@ -63,7 +54,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/spinner"
-        android:layout_below="@+id/title"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:spinnerMode="dropdown"/>
@@ -299,7 +289,6 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Cash drawer status is unknown"
         android:id="@+id/cashDrawer"
-        android:layout_marginTop="36dp"
         android:layout_below="@+id/lastDateTitle"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
@@ -317,7 +306,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Open Cash Drawer"
+        android:text="Open Drawer"
         android:id="@+id/openDrawer"
         android:layout_below="@+id/paperStatus"
         android:layout_alignParentLeft="true"
@@ -330,7 +319,38 @@
         android:text="Printer Feed"
         android:id="@+id/printerFeed"
         android:layout_alignTop="@+id/openDrawer"
-        android:layout_toRightOf="@+id/openDrawer"
+        android:layout_toRightOf="@+id/docNoTitle"
         android:layout_toEndOf="@+id/openDrawer"/>
+
+    <ToggleButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="High Speed"
+        android:id="@+id/highSpeed"
+        android:checked="true"
+        android:layout_below="@+id/textView"
+        android:layout_alignRight="@+id/deviceVariantTitle"
+        android:layout_alignEnd="@+id/deviceVariantTitle"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="High speed printing"
+        android:id="@+id/textView"
+        android:layout_below="@+id/openDrawer"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lights"
+        android:id="@+id/lightShow"
+        android:layout_alignTop="@+id/printerFeed"
+        android:layout_toEndOf="@+id/printerFeed"
+        android:layout_toRightOf="@+id/printerFeed"
+        android:layout_alignBottom="@+id/printerFeed"/>
 
 </RelativeLayout>

@@ -48,6 +48,7 @@ import com.worldpay.hub.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ public class MainActivityFragment extends Fragment
     private Button mPrintTest;
     private Button mDrawer;
     private Button mPrinterFeed;
+    private Button mLights;
     private ToggleButton mHighSpeed;
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -291,6 +293,74 @@ public class MainActivityFragment extends Fragment
 
         });
 
+        mLights = (Button) getActivity().findViewById(R.id.lightShow);
+        mLights.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                MePOS hub = new MePOS(mPort, mUsbManager);
+                try
+                {
+                    //Light show!
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT,     MePOS.STATE_OFF);
+
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_RED, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_RED, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_RED, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_GREEN, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_GREEN, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_GREEN, MePOS.STATE_OFF);
+
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_RED, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COLOR_GREEN, MePOS.STATE_ON);
+
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.STATE_OFF);
+
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.COLOR_RED);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.COLOR_GREEN);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.COLOR_BLUE);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT, MePOS.STATE_OFF);
+
+                    int colours[] = new int[] { MePOS.COLOR_RED, MePOS.COLOR_GREEN, MePOS.STATE_OFF };
+                    int lights[] = new int[] { MePOS.DIAGNOSTIC_LIGHT_1, MePOS.DIAGNOSTIC_LIGHT_2, MePOS.DIAGNOSTIC_LIGHT_3, MePOS.COSMETIC_LIGHT};
+                    for(int i = 0; i < 100; i++)
+                    {
+                        hub.setDiagnosticLight(lights[i % 4], colours[i % 3]);
+                    }
+
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_1, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_2, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.DIAGNOSTIC_LIGHT_3, MePOS.STATE_OFF);
+                    hub.setDiagnosticLight(MePOS.COSMETIC_LIGHT,     MePOS.STATE_OFF);
+                }
+                catch (MePOSResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, 2000);
     }
 
@@ -312,6 +382,7 @@ public class MainActivityFragment extends Fragment
                             driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
                     result.addAll(ports);
 
+                    Log.d("Sammy", String.format("Adding device %04X:%04X", driver.getDevice().getVendorId(), driver.getDevice().getProductId()));
                     mNames.add(driver.getDevice().getDeviceName());
                 }
                 return result;

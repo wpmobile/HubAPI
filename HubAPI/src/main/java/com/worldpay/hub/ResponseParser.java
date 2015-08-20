@@ -52,8 +52,8 @@ public class ResponseParser
      //   Log.d("MePOS", HexDump.dumpHexString(data, 0, data.length));
         byte[] unescapedData = unescape(data);
 
-        Log.d("MePOS", "Unescaped response data follows");
-        Log.d("MePOS", HexDump.dumpHexString(unescapedData, 0, unescapedData.length));
+        Log.i("MePOS", "Unescaped response data follows");
+        Log.i("MePOS", HexDump.dumpHexString(unescapedData, 0, unescapedData.length));
 
         //Validate the checksum
         if(!validate(unescapedData))
