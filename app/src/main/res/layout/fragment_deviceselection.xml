@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:paddingLeft="@dimen/fragment_horizontal_margin"
+              android:paddingRight="@dimen/fragment_horizontal_margin"
+              android:paddingTop="@dimen/fragment_vertical_margin"
+              android:paddingBottom="@dimen/fragment_vertical_margin"
+              android:background="#ffff4758">
+
+
+    <RadioButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#ffffffff"
+        android:text="USB Devices"
+        android:id="@+id/usbDeviceSelector"
+        android:buttonTint="#ffffffff"/>
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/usbDevices"
+        android:spinnerMode="dropdown"
+        android:textColor="#ffffffff"
+        android:layout_gravity="left"
+        android:layout_below="@+id/usbDeviceSelector"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <RadioButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#ffffffff"
+        android:text="Bluetooth Devices"
+        android:id="@+id/btDeviceSelector"
+        android:layout_below="@+id/usbDevices"
+        android:buttonTint="#ffffffff"
+        android:checked="true"/>
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btDevices"
+        android:spinnerMode="dropdown"
+        android:textColor="#ffffffff"
+        android:layout_below="@+id/btDeviceSelector"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btDevices"
+        android:text="Print Test"
+        android:id="@+id/printTest"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/printTest"
+        android:text="Open Cash Drawer"
+        android:id="@+id/openCashDrawer"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/openCashDrawer"
+        android:text="Printer feed"
+        android:id="@+id/printerFeed"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/printerFeed"
+        android:text="Probe hub"
+        android:id="@+id/probe"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="No device selected"
+        android:id="@+id/deviceAddress"
+        android:layout_alignParentBottom="true"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="No device selected"
+        android:id="@+id/deviceType"
+        android:layout_above="@+id/deviceAddress"
+        android:textColor="#ffffffff"/>
+
+</RelativeLayout>

@@ -1,10 +1,7 @@
 package com.worldpay.hub.link;
-import android.util.Log;
 
 import com.worldpay.hub.Checksum;
-import com.worldpay.hub.commands.Command;
-import com.worldpay.hub.Checksum;
-import com.worldpay.hub.util.HexDump;
+import com.worldpay.hub.MePOS.commands.Command;
 
 /**
  * Represents a single frame to be transmitted

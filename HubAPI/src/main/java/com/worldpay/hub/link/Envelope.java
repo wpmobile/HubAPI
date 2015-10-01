@@ -1,5 +1,5 @@
 package com.worldpay.hub.link;
-import com.worldpay.hub.commands.Command;
+import com.worldpay.hub.MePOS.commands.Command;
 /**
  * An Envelope contains routing and tagging data for a command.
  */

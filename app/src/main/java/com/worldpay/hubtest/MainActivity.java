@@ -5,9 +5,14 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.worldpay.hub.Hub;
+import com.worldpay.hub.MePOS.MePOSHub;
 
-public class MainActivity extends ActionBarActivity
+
+public class MainActivity extends ActionBarActivity implements HubProvider
 {
+    protected Hub mHub;
+    protected Prober mProber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -40,5 +45,30 @@ public class MainActivity extends ActionBarActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public Hub getHub()
+    {
+        return mHub;
+    }
+
+    @Override
+    public void setHub(Hub hub)
+    {
+        mHub = hub;
+    }
+
+    @Override
+    public void setProber(Prober prober)
+    {
+        mProber = prober;
+    }
+
+    @Override
+    public void probe(MePOSHub hub)
+    {
+        if(mProber != null)
+            mProber.probe(hub);
     }
 }
