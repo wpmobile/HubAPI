@@ -61,16 +61,27 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/printTest"
+        android:text="Hammer the printer"
+        android:id="@+id/printHammer"
+        android:layout_below="@+id/btDevices"
+        android:layout_toRightOf="@+id/printTest"
+        android:layout_toEndOf="@+id/printTest"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/printHammer"
         android:text="Open Cash Drawer"
         android:id="@+id/openCashDrawer"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/openCashDrawer"
         android:text="Printer feed"
-        android:id="@+id/printerFeed"/>
+        android:id="@+id/printerFeed"
+        android:layout_alignTop="@+id/openCashDrawer"
+        android:layout_alignRight="@+id/printHammer"
+        android:layout_alignEnd="@+id/printHammer"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -95,5 +106,14 @@
         android:id="@+id/deviceType"
         android:layout_above="@+id/deviceAddress"
         android:textColor="#ffffffff"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Raster Print"
+        android:id="@+id/raster"
+        android:layout_below="@+id/openCashDrawer"
+        android:layout_toRightOf="@+id/probe"
+        android:layout_toEndOf="@+id/probe"/>
 
 </RelativeLayout>

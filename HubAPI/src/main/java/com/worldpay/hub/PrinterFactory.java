@@ -1,5 +1,7 @@
 package com.worldpay.hub;
 
+import android.graphics.Bitmap;
+
 /**
  * A common interface for all printer factories.
  */
@@ -20,6 +22,11 @@ public interface PrinterFactory
 
     public static final int UNDERLINE_NONE   = 0x00;
     public static final int UNDERLINE_SINGLE = 0x01;
+
+    public static final int ROTATION_90 = 1;
+    public static final int ROTATION_180 = 2;
+    public static final int ROTATION_270 = 3;
+    public static final int ROTATION_0 = 0;
 
     public PrinterCommand Beep() throws PrinterCommandNotImplementedException;
     public PrinterCommand Bold() throws PrinterCommandNotImplementedException;
@@ -45,6 +52,7 @@ public interface PrinterFactory
     public PrinterCommand OpenDrawer() throws PrinterCommandNotImplementedException;
     public PrinterCommand PrintBitmap() throws PrinterCommandNotImplementedException;
     public PrinterCommand PrintBitmap(int index) throws PrinterCommandNotImplementedException;
+    public PrinterCommand PrintBitmap(Bitmap bitmap, int width, int rotation) throws PrinterCommandNotImplementedException;
     public PrinterCommand PrintTestPage() throws PrinterCommandNotImplementedException;
     public PrinterCommand PrintText(String text) throws PrinterCommandNotImplementedException;
     public PrinterCommand ReversePrintMode() throws PrinterCommandNotImplementedException;
@@ -57,4 +65,5 @@ public interface PrinterFactory
     public PrinterCommand SetWidth(int width) throws PrinterCommandNotImplementedException;
     public PrinterCommand SingleWidthCharacters() throws PrinterCommandNotImplementedException;
     public PrinterCommand Underline(int mode) throws PrinterCommandNotImplementedException;
+    public PrinterCommand SetCharacterSet(int set) throws PrinterCommandNotImplementedException;
 }

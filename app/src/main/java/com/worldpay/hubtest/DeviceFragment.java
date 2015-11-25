@@ -8,6 +8,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
@@ -29,28 +32,23 @@ import android.widget.TextView;
 
 import com.worldpay.hub.HubResponseException;
 import com.worldpay.hub.MePOS.MePOSHub;
+import com.worldpay.hub.MePOS.printer.commands.DownloadBitmap;
+import com.worldpay.hub.MePOS.printer.commands.Justify;
+import com.worldpay.hub.MePOS.printer.commands.PrintBitmap;
+import com.worldpay.hub.MePOS.printer.commands.Raster;
+import com.worldpay.hub.MePOS.printer.commands.Underline;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
-import com.worldpay.hub.mpop.mpopHub;
 import com.worldpay.hub.PrinterQueue;
-import com.worldpay.hub.mpop.printer.commands.Bold;
-import com.worldpay.hub.mpop.printer.commands.ClearPrinter;
-import com.worldpay.hub.mpop.printer.commands.CutPaper;
-import com.worldpay.hub.mpop.printer.commands.DoubleWidthCharacters;
-import com.worldpay.hub.mpop.printer.commands.FeedPaper;
-import com.worldpay.hub.mpop.printer.commands.Italic;
-import com.worldpay.hub.mpop.printer.commands.Justify;
-import com.worldpay.hub.mpop.printer.commands.PrintBitmap;
-import com.worldpay.hub.mpop.printer.commands.PrintText;
-import com.worldpay.hub.mpop.printer.commands.ReversePrintMode;
-import com.worldpay.hub.mpop.printer.commands.SetCodePage;
-import com.worldpay.hub.mpop.printer.commands.Underline;
+import com.worldpay.hub.mpop.mpopHub;
 import com.worldpay.hub.usbserial.driver.UsbSerialDriver;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 import com.worldpay.hub.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -69,9 +67,11 @@ public class DeviceFragment extends Fragment
     private Spinner mBTDevices;
 
     private Button mPrinterTest;
+    private Button mHammer;
     private Button mDrawer;
     private Button mProbe;
     private Button mPrinterFeed;
+    private Button mRasterPrint;
 
     private RadioButton mSelectUSB;
     private RadioButton mSelectBT;
@@ -148,7 +148,7 @@ public class DeviceFragment extends Fragment
                      mSelectUSB.setChecked(false);
                      mUSBDevices.setEnabled(false);
                      mBTDevices.setEnabled(true);
-                     mDeviceType.setText("mPOP");
+                     mDeviceType.setText("BT Devices");
                      mDeviceName.setText("");
                  }
              }
@@ -159,12 +159,14 @@ public class DeviceFragment extends Fragment
             @Override
             public void onClick(View view)
             {
-                //Unset USB
+                //Unset BT
                 mSelectBT.setChecked(false);
                 mUSBDevices.setEnabled(true);
                 mBTDevices.setEnabled(false);
                 mDeviceType.setText("MePOS");
                 mDeviceName.setText("");
+
+                refreshDeviceList();
             }
         });
 
@@ -181,9 +183,17 @@ public class DeviceFragment extends Fragment
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                                        int arg2, long arg3)
             {
-                mListener.setHub(new mpopHub("BT:" + mBTAdapter.getItem(arg2), getActivity()));
-                mDeviceType.setText("mPOP");
-                mDeviceName.setText(mBTAdapter.getItem(arg2));
+                try
+                {
+                    mListener.setHub(new mpopHub("BT:" + mBTAdapter.getItem(arg2), getActivity()));
+                    mDeviceType.setText("BT Devices");
+                    mDeviceName.setText(mBTAdapter.getItem(arg2));
+                } catch (HubResponseException e)
+                {
+                    mDeviceType.setText("Error");
+                    mDeviceName.setText("");
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -265,6 +275,47 @@ public class DeviceFragment extends Fragment
             }
         });
 
+        mRasterPrint = (Button) getActivity().findViewById(R.id.raster);
+        mRasterPrint.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if(mListener.getHub() == null)
+                    return;
+
+                PrinterFactory factory = mListener.getHub().getPrinter();
+
+                byte[] picture = new byte[]{};
+                try
+                {
+                    InputStream is = getResources().openRawResource(R.raw.bmphack);
+                    picture = new byte[is.available()];
+                    int read = is.read(picture);
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+
+                //MePOS
+                PrinterQueue imageQueue = new PrinterQueue();
+
+                //Decode the bitmap
+                imageQueue.rasterPrint(picture);
+
+                try
+                {
+                    mListener.getHub().print(imageQueue);
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         mPrinterTest = (Button) getActivity().findViewById(R.id.printTest);
         mPrinterTest.setOnClickListener(new View.OnClickListener()
         {
@@ -275,10 +326,14 @@ public class DeviceFragment extends Fragment
                 if(mListener.getHub() == null)
                     return;
 
+                Log.d("Sammy", String.format("Starting print test"));
+                PrinterFactory factory = mListener.getHub().getPrinter();
+
+
                 byte[] picture = new byte[]{};
                 try
                 {
-                    InputStream is = getResources().openRawResource(R.raw.tr1);
+                    InputStream is = getResources().openRawResource(R.raw.bmphack);
                     picture = new byte[is.available()];
                     int read = is.read(picture);
                 } catch (IOException e)
@@ -286,15 +341,123 @@ public class DeviceFragment extends Fragment
                     e.printStackTrace();
                 }
 
-                //  PrinterQueue imageQueue = new PrinterQueue();
-                //  imageQueue.add(new SelectMemory(SelectMemory.MEMORY_RAM))
-                //            .add(new DownloadBitmap(picture, 1));
+                //MePOS
+                PrinterQueue imageQueue = new PrinterQueue();
+                imageQueue.add(new DownloadBitmap(picture))
+                        .add(new PrintBitmap());
+
+                /* mPOP
+                Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.headshot);
+                try
+                {
+                    imageQueue.add(factory.PrintBitmap(bitmap, 384, PrinterFactory.ROTATION_0))
+                              .add(factory.CutPaper(PrinterFactory.CUT_FULL));
+
+                    Bitmap bmp;
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inMutable = true;
+                    bmp = BitmapFactory.decodeByteArray(picture, 0, picture.length, options);
+
+                    imageQueue.add(factory.PrintBitmap(bmp, 384, PrinterFactory.ROTATION_0))
+                               .add(factory.CutPaper(PrinterFactory.CUT_FULL));
+                }
+                catch (PrinterCommandNotImplementedException e)
+                {
+                    e.printStackTrace();
+                }*/
 
                 PrinterQueue queue = new PrinterQueue();
-                PrinterFactory factory = mListener.getHub().getPrinter();
                 try
                 {
                     queue.add(factory.ClearPrinter())
+                            .add(factory.SetCodePage(32))
+                            .add(factory.PrintText("Hello Sam\n"))
+                            .add(factory.Underline(Underline.UNDERLINE_SINGLE))
+                            .add(factory.PrintText("This is underlined\n"))
+                            .add(factory.Underline(Underline.UNDERLINE_NONE))
+                            .add(factory.Beep())
+                            .add(factory.DoubleWidthCharacters())
+                            .add(factory.PrintText("This is wide\n"))
+                            .add(factory.SingleWidthCharacters())
+                            .add(factory.ClearPrinter())
+                            .add(factory.ReversePrintMode(PrinterFactory.REVERSE_ON))
+                            .add(factory.PrintText(" This is reversed \n"))
+                            .add(factory.ReversePrintMode(PrinterFactory.REVERSE_OFF))
+                            .add(factory.Bold(PrinterFactory.BOLD_ON))
+                            .add(factory.PrintText("This is bold\n"))
+                            .add(factory.Bold(PrinterFactory.BOLD_OFF))
+                            .add(factory.Justify(Justify.JUSTIFY_RIGHT))
+                            .add(factory.PrintText("Justify right\n"))
+                            .add(factory.Justify(Justify.JUSTIFY_CENTRE))
+                            .add(factory.PrintText("Justify centre\n"))
+                            .add(factory.Justify(Justify.JUSTIFY_LEFT))
+                            .add(factory.PrintText("Justify left\n"))
+                            .add(factory.PrintText("................................\n"))
+                            .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"))
+                            .add(factory.FeedPaper(10))
+                            .add(factory.CutPaper(PrinterFactory.CUT_FULL))
+                            .add(factory.FeedPaper(2));
+                } catch (PrinterCommandNotImplementedException e)
+                {
+                    Log.d("Sammy", "Command not implemented!");
+                    e.printStackTrace();
+                }
+
+                try
+                {
+                    Log.d("Sammy", String.format("Printing now"));
+                    mListener.getHub().print(imageQueue);
+                   // mListener.getHub().print(queue);
+                } catch (HubResponseException e)
+                {
+                    Log.d("Sammy", e.getMessage());
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    Log.d("Sammy", e.getMessage());
+                    e.printStackTrace();
+                }
+                Log.d("Sammy", String.format("Print finished"));
+            }
+
+        });
+
+        mHammer = (Button) getActivity().findViewById(R.id.printHammer);
+        mHammer.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+
+                if (mListener.getHub() == null)
+                    return;
+
+                PrinterFactory factory = mListener.getHub().getPrinter();
+
+                byte[] header = new byte[]{};
+                byte[] footer = new byte[]{};
+                try
+                {
+                    InputStream is = getResources().openRawResource(R.raw.tr1);
+                    header = new byte[is.available()];
+                    int read = is.read(header);
+
+                    is = getResources().openRawResource(R.raw.tr2);
+                    footer = new byte[is.available()];
+                    read = is.read(footer);
+
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+
+                //MePOS
+                PrinterQueue queue = new PrinterQueue();
+                try
+                {
+                    queue.add(new DownloadBitmap(header))
+                            .add(new PrintBitmap())
+                            .add(factory.SetCodePage(32))
                             .add(factory.PrintText("Hello Sam\n"))
                             .add(factory.Underline(Underline.UNDERLINE_SINGLE))
                             .add(factory.PrintText("This is underlined\n"))
@@ -317,7 +480,9 @@ public class DeviceFragment extends Fragment
                             .add(factory.Justify(Justify.JUSTIFY_LEFT))
                             .add(factory.PrintText("Justify left\n"))
                             .add(factory.PrintText("................................\n"))
-                            .add(factory.PrintText("1 x Bionic Arm             £1.99\n"))
+                            .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"))
+                            .add(new DownloadBitmap(footer))
+                            .add(new PrintBitmap())
                        /* .add(factory.OpenDrawer())*/
                             .add(factory.FeedPaper(10))
                             .add(factory.CutPaper(PrinterFactory.CUT_FULL))
@@ -327,21 +492,22 @@ public class DeviceFragment extends Fragment
                     e.printStackTrace();
                 }
 
-
                 try
                 {
                     mListener.getHub().print(queue);
                 } catch (HubResponseException e)
                 {
+                    Log.d("Sammy", e.getMessage());
                     e.printStackTrace();
                 } catch (IOException e)
                 {
+                    Log.d("Sammy", e.getMessage());
                     e.printStackTrace();
                 }
+                Log.d("Sammy", String.format("Print finished"));
             }
 
         });
-
 
         mProbe = (Button) getActivity().findViewById(R.id.probe);
         mProbe.setOnClickListener(new View.OnClickListener()
@@ -366,6 +532,7 @@ public class DeviceFragment extends Fragment
             protected List<UsbSerialPort> doInBackground(Void... params)
             {
                 Log.d(TAG, "Refreshing device list ...");
+                mUSBNames.clear();
 
                 final List<UsbSerialDriver> drivers =
                         UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
@@ -411,7 +578,7 @@ public class DeviceFragment extends Fragment
             // Loop through paired devices
             for (BluetoothDevice device : pairedDevices) {
                 // Add the name and address to an array adapter to show in a ListView
-                mBTAdapter.add(device.getName());
+                mBTAdapter.add(device.getName()/* + "\n" + device.getAddress()*/);
             }
         }
         Log.d(TAG, "Done refreshing USB, " + mUSBEntries.size() + " entries found.");

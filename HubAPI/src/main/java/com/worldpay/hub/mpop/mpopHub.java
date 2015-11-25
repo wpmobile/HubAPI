@@ -26,15 +26,14 @@ public class mpopHub implements Hub
     protected final static int MAX_DATASIZE  = 65536; //
     protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
 
-    public mpopHub(String btname, Context context)
+    public mpopHub(String btname, Context context) throws HubResponseException
     {
         try
         {
             mPort = StarIOPort.getPort(btname, "", 1000, context);
         } catch (StarIOPortException e)
         {
-            //$TODO - report error when we can't create a StarIOPort
-            e.printStackTrace();
+            throw new HubResponseException("Cannot connect to mPOP", e);
         }
     }
 
@@ -42,67 +41,21 @@ public class mpopHub implements Hub
     public void print(PrinterQueue queue) throws HubResponseException, IOException
     {
         PrinterCommand nextCommand = queue.getNextCommand();
-        ByteBuffer bb = ByteBuffer.allocate(MAX_DATASIZE);  //Maximum data size.  This is different
-        //to the max frame size, and slicing is
-        //done later
+        ByteBuffer bb = ByteBuffer.allocate(queue.size());
         while(nextCommand != null)
         {
-            //Queue the command
-            if((bb.position() + nextCommand.getData().length) > MAX_DATASIZE)
-            {
-                //We've not got space for this yet
-                //we have to execute
-                flushToPrinter(bb);
-            }
-
             bb.put(nextCommand.getData());
-            if(nextCommand.getDelay() > 0)
-            {
-                //we have to execute
-                flushToPrinter(bb);
-                try
-                {
-                    Thread.sleep(nextCommand.getDelay());
-                } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-            //Move on to the next one
             nextCommand = queue.getNextCommand();
         }
 
-        //Check to see if we've got anything buffered, but not printed
-        if(bb.position() > 0)
-        {
-            flushToPrinter(bb);
-        }
+        flushToPrinter(bb);
     }
 
     //Write some of the printer data to the printer
     private void flushToPrinter(ByteBuffer bb) throws HubResponseException, IOException
     {
-        byte[] buffer = new byte[bb.position()];
-        System.arraycopy(bb.array(), 0, buffer, 0, bb.position());
-
-        //Split the data into chunks suitable for the hub
-        //Theorectically, this is 16Kb, but we've found a 2Kb limit in practice
-        int offset = 0;
-        while(offset < buffer.length)
-        {
-            int len = CHUNKSIZE;
-            if((buffer.length - offset) < CHUNKSIZE)
-                len = buffer.length - offset;
-            byte[] sendBuffer = new byte[len];
-
-            //Copy this chunk to the send buffer
-            System.arraycopy(buffer, offset, sendBuffer, 0, len);
-
-            //Send this buffer
-            sendCommands(buffer, mPort);
-            offset += len;
-        }
-        bb.clear();
+        //Send this buffer
+        sendCommands(bb.array(), mPort);
     }
 
     @Override

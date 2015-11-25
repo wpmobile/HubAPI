@@ -50,17 +50,25 @@ public class MePOSHub implements Hub
     protected final static int MAX_FRAMESIZE = 16389; //
     protected final static int MAX_DATASIZE  = 65536; //
 
-    protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
+    //protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
+    protected final static int CHUNKSIZE = 16000; //Max number of bytes to send
 
     //Diagnostic lights constants
     public static final int COLOR_RED      = 1;
     public static final int COLOR_GREEN    = 2;
     public static final int COLOR_BLUE     = 4;
 
-    public static final int DIAGNOSTIC_LIGHT_1  = 1;
-    public static final int DIAGNOSTIC_LIGHT_2  = 4;
-    public static final int DIAGNOSTIC_LIGHT_3  = 16;
-    public static final int COSMETIC_LIGHT      = 256;
+    //The power values are the values of the green light in the MePOS documentation,
+    //e.g 16  Diagnostic#5, Green 1 = on, 0 = off. This is the Printer LED
+
+    public static final int DIAGNOSTIC_LIGHT_POWER      = 1 << 0;
+    public static final int DIAGNOSTIC_LIGHT_NETWORK    = 1 << 2;
+    public static final int DIAGNOSTIC_LIGHT_TABLET     = 1 << 4;
+    public static final int DIAGNOSTIC_LIGHT_PED        = 1 << 6;
+    public static final int COSMETIC_LIGHT              = 1 << 8;
+    public static final int DIAGNOSTIC_LIGHT_PRINTER    = 1 << 16;
+    public static final int DIAGNOSTIC_LIGHT_USB1       = 1 << 18;
+    public static final int DIAGNOSTIC_LIGHT_USB2       = 1 << 20;
 
     public static final int STATE_ON        = 1;
     public static final int STATE_OFF       = 0;
@@ -293,6 +301,9 @@ public class MePOSHub implements Hub
     @Override
     public void print(PrinterQueue queue) throws HubResponseException, IOException
     {
+
+        Log.d("Sammy", "Hub has the printer queue");
+        Log.d("Sammy", String.format("Queue contains %d items", queue.size()));
         PrinterCommand nextCommand = queue.getNextCommand();
         ByteBuffer bb = ByteBuffer.allocate(MAX_DATASIZE);  //Maximum data size.  This is different
                                                             //to the max frame size, and slicing is
@@ -307,6 +318,7 @@ public class MePOSHub implements Hub
                 flushToPrinter(bb);
             }
 
+            Log.d("Sammy", String.format("Adding command %s", nextCommand.getClass().getCanonicalName()));
             bb.put(nextCommand.getData());
             if(nextCommand.getDelay() > 0)
             {
@@ -324,11 +336,16 @@ public class MePOSHub implements Hub
             nextCommand = queue.getNextCommand();
         }
 
+        Log.d("Sammy", "Finished the printer queue");
         //Check to see if we've got anything buffered, but not printed
         if(bb.position() > 0)
         {
+
+            Log.d("Sammy", "Flushing remaining printer data");
             flushToPrinter(bb);
         }
+
+        Log.d("Sammy", "Printing has finished");
     }
 
     /***
@@ -393,6 +410,8 @@ public class MePOSHub implements Hub
             System.arraycopy(buffer, offset, sendBuffer, 0, len);
 
             //Send this buffer
+
+            Log.d("Sammy", String.format("Flushing data (%d bytes) to printer", len));
             executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT);
 
             offset += len;
@@ -604,9 +623,9 @@ public class MePOSHub implements Hub
             //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
-                Log.d(TAG, "********************************************");
+           /*     Log.d(TAG, "********************************************");
                 Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Log.d(TAG, "********************************************");
+                Log.d(TAG, "********************************************");*/
                 Log.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes

@@ -1,7 +1,9 @@
 package com.worldpay.hub.MePOS;
 
+import android.graphics.Bitmap;
 import android.util.Printer;
 
+import com.worldpay.hub.MePOS.printer.commands.SetCharacterSet;
 import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
@@ -184,6 +186,12 @@ public class Factory implements PrinterFactory
     }
 
     @Override
+    public PrinterCommand PrintBitmap(Bitmap bitmap, int width, int rotation) throws PrinterCommandNotImplementedException
+    {
+        return new PrintBitmap(bitmap, width, rotation);
+    }
+
+    @Override
     public PrinterCommand PrintTestPage() throws PrinterCommandNotImplementedException
     {
         return new PrintTestPage();
@@ -253,6 +261,12 @@ public class Factory implements PrinterFactory
     public PrinterCommand Underline(int mode) throws PrinterCommandNotImplementedException
     {
         return new Underline(mode);
+    }
+
+    @Override
+    public PrinterCommand SetCharacterSet(int mode) throws PrinterCommandNotImplementedException
+    {
+        return new SetCharacterSet(mode);
     }
 }
 

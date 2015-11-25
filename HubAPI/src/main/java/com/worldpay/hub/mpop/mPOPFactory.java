@@ -1,5 +1,7 @@
 package com.worldpay.hub.mpop;
 
+import android.graphics.Bitmap;
+
 import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
@@ -24,6 +26,7 @@ import com.worldpay.hub.mpop.printer.commands.PrintTestPage;
 import com.worldpay.hub.mpop.printer.commands.PrintText;
 import com.worldpay.hub.mpop.printer.commands.ReversePrintMode;
 import com.worldpay.hub.mpop.printer.commands.SelectMemory;
+import com.worldpay.hub.mpop.printer.commands.SetCharacterSet;
 import com.worldpay.hub.mpop.printer.commands.SetCodePage;
 import com.worldpay.hub.mpop.printer.commands.SetTabs;
 import com.worldpay.hub.mpop.printer.commands.SetWidth;
@@ -180,6 +183,12 @@ public class mPOPFactory implements PrinterFactory
     }
 
     @Override
+    public PrinterCommand PrintBitmap(Bitmap bitmap, int width, int rotation) throws PrinterCommandNotImplementedException
+    {
+        return new PrintBitmap(bitmap, width, rotation);
+    }
+
+    @Override
     public PrinterCommand PrintTestPage() throws PrinterCommandNotImplementedException
     {
         return new PrintTestPage();
@@ -249,5 +258,11 @@ public class mPOPFactory implements PrinterFactory
     public PrinterCommand Underline(int mode) throws PrinterCommandNotImplementedException
     {
         return new Underline(mode);
+    }
+
+    @Override
+    public PrinterCommand SetCharacterSet(int mode) throws PrinterCommandNotImplementedException
+    {
+        return new SetCharacterSet(mode);
     }
 }
