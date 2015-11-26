@@ -40,13 +40,15 @@ public class MePOSHub implements Hub
     protected UsbSerialPort mPort;
     protected UsbManager mManager;
 
+    protected final static boolean FLOW_CONTROL = false;
+
     protected final static byte HUB_ADDRESS = 0x18;
     protected final static byte PRINTER_ADDRESS = 0x12;
     protected final static byte TABLET_ADDRESS = 0x30;
     protected final static byte CASHDRAWER_ADDRESS = 0x1C;
     protected final static byte IO_ADDRESS = 0x1B;
 
-    protected final static int DEFAULT_TIMEOUT = 1000; //1 second
+    protected final static int DEFAULT_TIMEOUT = 4000; //4 seconds
     protected final static int MAX_FRAMESIZE = 16389; //
     protected final static int MAX_DATASIZE  = 65536; //
 
@@ -301,9 +303,7 @@ public class MePOSHub implements Hub
     @Override
     public void print(PrinterQueue queue) throws HubResponseException, IOException
     {
-
-        Log.d("Sammy", "Hub has the printer queue");
-        Log.d("Sammy", String.format("Queue contains %d items", queue.size()));
+        int seqNo = 1;
         PrinterCommand nextCommand = queue.getNextCommand();
         ByteBuffer bb = ByteBuffer.allocate(MAX_DATASIZE);  //Maximum data size.  This is different
                                                             //to the max frame size, and slicing is
@@ -315,15 +315,30 @@ public class MePOSHub implements Hub
             {
                 //We've not got space for this yet
                 //we have to execute
-                flushToPrinter(bb);
+                try
+                {
+                    seqNo = flushToPrinter(bb, seqNo);
+                }
+                catch(HubResponseException e)
+                {
+                    //Flush to printer has failed, abort
+                    return;
+                }
             }
 
-            Log.d("Sammy", String.format("Adding command %s", nextCommand.getClass().getCanonicalName()));
             bb.put(nextCommand.getData());
             if(nextCommand.getDelay() > 0)
             {
-                //we have to execute
-                flushToPrinter(bb);
+                try
+                {
+                    seqNo = flushToPrinter(bb, seqNo);
+                }
+                catch(HubResponseException e)
+                {
+                    //Flush to printer has failed, abort
+                    return;
+                }
+
                 try
                 {
                     Thread.sleep(nextCommand.getDelay());
@@ -336,16 +351,19 @@ public class MePOSHub implements Hub
             nextCommand = queue.getNextCommand();
         }
 
-        Log.d("Sammy", "Finished the printer queue");
         //Check to see if we've got anything buffered, but not printed
         if(bb.position() > 0)
         {
-
-            Log.d("Sammy", "Flushing remaining printer data");
-            flushToPrinter(bb);
+            try
+            {
+                seqNo = flushToPrinter(bb, seqNo);
+            }
+            catch(HubResponseException e)
+            {
+                //Flush to printer has failed, abort
+                return;
+            }
         }
-
-        Log.d("Sammy", "Printing has finished");
     }
 
     /***
@@ -391,13 +409,12 @@ public class MePOSHub implements Hub
         executeCommand(io, IO_ADDRESS, DEFAULT_TIMEOUT);
     }
 
-    private void flushToPrinter(ByteBuffer bb) throws HubResponseException, IOException
+    private int flushToPrinter(ByteBuffer bb, int sequenceNumber) throws HubResponseException, IOException
     {
         byte[] buffer = new byte[bb.position()];
         System.arraycopy(bb.array(), 0, buffer, 0, bb.position());
 
         //Split the data into chunks suitable for the hub
-        //Theorectically, this is 16Kb, but we've found a 2Kb limit in practice
         int offset = 0;
         while(offset < buffer.length)
         {
@@ -411,25 +428,52 @@ public class MePOSHub implements Hub
 
             //Send this buffer
 
-            Log.d("Sammy", String.format("Flushing data (%d bytes) to printer", len));
-            executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT);
+            Log.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
+            ArrayList<Command> responses = null;
+
+            //Keep resending this section until we get acknowledgement
+            int failureCount = 0;
+
+            if(FLOW_CONTROL)
+            {
+                while (responses == null || responses.size() == 0)
+                {
+                    Log.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
+                    Log.d(TAG, String.format("Attempt number %d", failureCount + 1));
+                    responses = executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) sequenceNumber);
+
+                    Log.d(TAG, String.format("Got %d responses", responses.size()));
+
+                    if (responses == null || responses.size() == 0)
+                    {
+                        failureCount++;
+                        Log.d(TAG, "Attempt failed, will retry");
+                    }
+
+                    if (failureCount > 5)
+                    {
+                        //Fatal error, abort
+                        throw new HubResponseException("Exceeded hub command retry limit");
+                    }
+                }
+                //Rotate sequence number if it goes over its maximum value of 15
+                sequenceNumber++;
+                if (sequenceNumber > 15) sequenceNumber = 1;
+            }
+            else
+            {
+                //No flow control, just send
+                executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) sequenceNumber);
+            }
+
+            Log.d(TAG, "Sent printer part to buffer");
 
             offset += len;
         }
         bb.clear();
+
+        return sequenceNumber;
     }
-    /**
-     * Issues a command to the printer to open the cash drawer
-     * @throws HubResponseException
-     */
-/*  THIS IS THE OLD VERSION TO OPEN THE CASH DRAWER FROM THE PRINTER
-    public void openCashDrawer() throws MePOSResponseException, IOException
-    {
-        executeCommand(new RawData(new OpenDrawer().getData()),
-                PRINTER_ADDRESS,
-                DEFAULT_TIMEOUT);
-    }
-*/
 
     /**
      * Instructs the printer to feed n lines.  This also flushes the printer buffer.
@@ -554,6 +598,18 @@ public class MePOSHub implements Hub
      */
     protected ArrayList<Command> executeCommand(Command c, byte target, int timeout) throws HubResponseException, IOException
     {
+        //Add a default sequence number
+        return executeCommand(c, target, timeout, (byte)0);
+    }
+
+    /**
+     * Executes the command to the provided address, and with the provided timeout
+     * @param c is the command to be executed
+     * @return An ArrayList of Commands as the response from the MePOS device
+     * @throws HubResponseException
+     */
+    protected ArrayList<Command> executeCommand(Command c, byte target, int timeout, byte sequenceNumber) throws HubResponseException, IOException
+    {
         ArrayList<Command> responses = new ArrayList<Command>();
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
@@ -567,16 +623,18 @@ public class MePOSHub implements Hub
         }
 
         mPort.open(connection);
-        Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target));
+        Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target, sequenceNumber));
 
         byte[] dataToSend = frames[0].getFrameData();
 
-        Log.i(TAG, String.format("Writing"));
-        Log.i(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        Log.d(TAG, String.format("Writing"));
+        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
         int writeLen = mPort.write(dataToSend, timeout);
-        Log.i(TAG, String.format("Wrote %d bytes", writeLen));
+        Log.d(TAG, String.format("Wrote %d bytes", writeLen));
 
-        responses  = readResponses(timeout);
+        Log.d(TAG, "Calling response read");
+        if(FLOW_CONTROL)
+          responses  = readResponses(timeout);
 
         try
         {
@@ -605,27 +663,29 @@ public class MePOSHub implements Hub
         boolean waitingForResponse = true;
         long startTime = System.currentTimeMillis();
 
+        Log.d(TAG, "Starting to wait for response");
         while(waitingForResponse  || bytesRead > 0)
         {
+            Log.d(TAG, "Waiting....");
             bytesRead  = mPort.read(readBuffer, timeout);
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-                Log.i(TAG, "Read some data, not waiting for further responses");
+                Log.d(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-                Log.i(TAG, "Timeout, not waiting for further responses");
+                Log.d(TAG, "Timeout, not waiting for further responses");
             }
 
-            //Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+            Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
-           /*     Log.d(TAG, "********************************************");
+                Log.d(TAG, "********************************************");
                 Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Log.d(TAG, "********************************************");*/
+                Log.d(TAG, "********************************************");
                 Log.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes
