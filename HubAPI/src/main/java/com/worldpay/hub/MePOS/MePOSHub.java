@@ -39,8 +39,7 @@ public class MePOSHub implements Hub
     protected final static String TAG = "MePOS";
     protected UsbSerialPort mPort;
     protected UsbManager mManager;
-
-    protected final static boolean FLOW_CONTROL = false;
+    protected boolean mFlowControl = true;
 
     protected final static byte HUB_ADDRESS = 0x18;
     protected final static byte PRINTER_ADDRESS = 0x12;
@@ -52,8 +51,10 @@ public class MePOSHub implements Hub
     protected final static int MAX_FRAMESIZE = 16389; //
     protected final static int MAX_DATASIZE  = 65536; //
 
-    //protected final static int CHUNKSIZE = 10240; //Max number of bytes to send
-    protected final static int CHUNKSIZE = 16000; //Max number of bytes to send
+    protected final static int CHUNKSIZE = 10 * 1024; //Max number of bytes to send
+    //protected final static int CHUNKSIZE = 16000; //Max number of bytes to send
+
+    protected final static int MAX_FAILURES = 1;
 
     //Diagnostic lights constants
     public static final int COLOR_RED      = 1;
@@ -79,6 +80,14 @@ public class MePOSHub implements Hub
     {
         mPort = port;
         mManager = manager;
+        mFlowControl = true;
+    }
+
+    public MePOSHub(UsbSerialPort port, UsbManager manager, boolean flowcontrol)
+    {
+        mPort = port;
+        mManager = manager;
+        mFlowControl = flowcontrol;
     }
 
     /***
@@ -88,11 +97,12 @@ public class MePOSHub implements Hub
      */
     public int getSerialNumber() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new GetSerialNumber());
+        ArrayList<Envelope> response = executeCommand(new GetSerialNumber());
 
         int serialNumber = 0;
-        for(Command snum : response)
+        for(Envelope e : response)
         {
+            Command snum = e.getCommand();
             if (snum != null && snum.getCommandCode() == 'y')
             {
                 GetSerialNumber sn = (GetSerialNumber) snum;
@@ -113,11 +123,12 @@ public class MePOSHub implements Hub
      */
     public Date getDateTime() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new GetClock());
+        ArrayList<Envelope> response = executeCommand(new GetClock());
         Date date = null;
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'k')
             {
                 GetClock gc = (GetClock) command;
@@ -139,10 +150,11 @@ public class MePOSHub implements Hub
      */
     public Date setDateTime(Date date) throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new SetClock(date));
+        ArrayList<Envelope> response = executeCommand(new SetClock(date));
         Date responseDate = null;
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'K')
             {
                 SetClock sc = (SetClock) command;
@@ -164,10 +176,11 @@ public class MePOSHub implements Hub
      */
     public SystemInformation getSystemInformation() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new GetSystemInformation());
+        ArrayList<Envelope> response = executeCommand(new GetSystemInformation());
         SystemInformation si = null;
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'z')
             {
                 GetSystemInformation getSI = (GetSystemInformation) command;
@@ -189,11 +202,12 @@ public class MePOSHub implements Hub
      */
     public SystemInformation setSystemInformation(SystemInformation systemInformation) throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new SetSystemInformation(systemInformation));
+        ArrayList<Envelope> response = executeCommand(new SetSystemInformation(systemInformation));
         SystemInformation si = null;
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'z')
             {
                 GetSystemInformation getSI = (GetSystemInformation) command;
@@ -216,11 +230,12 @@ public class MePOSHub implements Hub
      */
     public String ping(String message) throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new Ping(message));
+        ArrayList<Envelope> response = executeCommand(new Ping(message));
 
         String responseText = "";
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'p')
             {
                 Ping pong = (Ping) command;
@@ -243,11 +258,12 @@ public class MePOSHub implements Hub
      */
     public boolean sendRawData(byte[] data) throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new RawData(data));
+        ArrayList<Envelope> response = executeCommand(new RawData(data));
         boolean success = false;
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'N')
             {
                 success = true;
@@ -267,11 +283,12 @@ public class MePOSHub implements Hub
      */
     public String getVersion() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new GetVersion());
+        ArrayList<Envelope> response = executeCommand(new GetVersion());
         String protocolVersion = "";
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'v')
             {
                 GetVersion version = (GetVersion) command;
@@ -317,7 +334,9 @@ public class MePOSHub implements Hub
                 //we have to execute
                 try
                 {
+                    Log.d(TAG, "Buffer is full, flushing");
                     seqNo = flushToPrinter(bb, seqNo);
+                    bb.clear();
                 }
                 catch(HubResponseException e)
                 {
@@ -326,11 +345,14 @@ public class MePOSHub implements Hub
                 }
             }
 
+            //Log.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
+            //Log.d(TAG, String.format("Position offset : %02X", bb.position()));
             bb.put(nextCommand.getData());
             if(nextCommand.getDelay() > 0)
             {
                 try
                 {
+                    Log.d(TAG, "Need to add a delay, flushing now");
                     seqNo = flushToPrinter(bb, seqNo);
                 }
                 catch(HubResponseException e)
@@ -356,6 +378,7 @@ public class MePOSHub implements Hub
         {
             try
             {
+                Log.d(TAG, "Flushing final data to printer");
                 seqNo = flushToPrinter(bb, seqNo);
             }
             catch(HubResponseException e)
@@ -421,21 +444,22 @@ public class MePOSHub implements Hub
             int len = CHUNKSIZE;
             if((buffer.length - offset) < CHUNKSIZE)
                 len = buffer.length - offset;
+
+            Log.d(TAG, String.format("Created a send buffer of %d bytes", len));
             byte[] sendBuffer = new byte[len];
 
             //Copy this chunk to the send buffer
             System.arraycopy(buffer, offset, sendBuffer, 0, len);
 
             //Send this buffer
-
-            Log.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
-            ArrayList<Command> responses = null;
+            ArrayList<Envelope> responses = null;
 
             //Keep resending this section until we get acknowledgement
             int failureCount = 0;
 
-            if(FLOW_CONTROL)
+            if(mFlowControl)
             {
+                Log.d(TAG, "Flow control is ON");
                 while (responses == null || responses.size() == 0)
                 {
                     Log.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
@@ -444,13 +468,27 @@ public class MePOSHub implements Hub
 
                     Log.d(TAG, String.format("Got %d responses", responses.size()));
 
-                    if (responses == null || responses.size() == 0)
+                    //Search responses for response to this command tag
+                    boolean found = false;
+                    for(Envelope e : responses)
+                    {
+                        Log.d(TAG, "Checking responses");
+                        Log.d(TAG, String.format("Sent: %d  Recv: %d", sequenceNumber, e.getTag()));
+                        if (!found && e.getTag() == (byte) sequenceNumber)
+                        {
+                            Log.d(TAG, "Found ack for this section - proceed with next part");
+                            found = true;
+                            continue;
+                        }
+                    }
+
+                    if (responses == null || responses.size() == 0 || !found)
                     {
                         failureCount++;
                         Log.d(TAG, "Attempt failed, will retry");
                     }
 
-                    if (failureCount > 5)
+                    if (failureCount > MAX_FAILURES)
                     {
                         //Fatal error, abort
                         throw new HubResponseException("Exceeded hub command retry limit");
@@ -463,6 +501,8 @@ public class MePOSHub implements Hub
             else
             {
                 //No flow control, just send
+                //Log.d(TAG, "Sending full queue to printer");
+                //Log.d(TAG, String.format("Sending %d bytes to printer", sendBuffer.length));
                 executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) sequenceNumber);
             }
 
@@ -484,8 +524,8 @@ public class MePOSHub implements Hub
     public void printerFeed(int lines) throws HubResponseException, IOException
     {
         executeCommand(new RawData(new FeedPaper(lines).getData()),
-                        PRINTER_ADDRESS,
-                        DEFAULT_TIMEOUT);
+                PRINTER_ADDRESS,
+                DEFAULT_TIMEOUT);
     }
 
     /**
@@ -495,15 +535,16 @@ public class MePOSHub implements Hub
     @Override
     public boolean hasPaper() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_PRINTER).getData()),
+        ArrayList<Envelope> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_PRINTER).getData()),
                                                     PRINTER_ADDRESS,
                                                     DEFAULT_TIMEOUT);
         RawData raw = null;
 
         boolean hasPaper = true;
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'N')
             {
                 if(command.getCommandData().length > 0)
@@ -540,15 +581,16 @@ public class MePOSHub implements Hub
     @Override
     public boolean isCashDrawerOpen() throws HubResponseException, IOException
     {
-        ArrayList<Command> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_CASH_DRAWER).getData()),
+        ArrayList<Envelope> response = executeCommand(new RawData(new GetStatus(GetStatus.STATUS_CASH_DRAWER).getData()),
                                                     PRINTER_ADDRESS,
                                                     DEFAULT_TIMEOUT);
         RawData raw = null;
 
         boolean drawerOpen = true;
 
-        for(Command command : response)
+        for(Envelope e : response)
         {
+            Command command = e.getCommand();
             if (command != null && command.getCommandCode() == 'N')
             {
                 if(command.getCommandData().length > 0)
@@ -584,7 +626,7 @@ public class MePOSHub implements Hub
      * @return An ArrayList of Commands as the response from the MePOS device
      * @throws HubResponseException
      */
-    protected ArrayList<Command> executeCommand(Command c) throws HubResponseException, IOException
+    protected ArrayList<Envelope> executeCommand(Command c) throws HubResponseException, IOException
     {
         //Default target is the hub management interface
         return executeCommand(c, HUB_ADDRESS, DEFAULT_TIMEOUT);
@@ -596,7 +638,7 @@ public class MePOSHub implements Hub
      * @return An ArrayList of Commands as the response from the MePOS device
      * @throws HubResponseException
      */
-    protected ArrayList<Command> executeCommand(Command c, byte target, int timeout) throws HubResponseException, IOException
+    protected ArrayList<Envelope> executeCommand(Command c, byte target, int timeout) throws HubResponseException, IOException
     {
         //Add a default sequence number
         return executeCommand(c, target, timeout, (byte)0);
@@ -608,9 +650,9 @@ public class MePOSHub implements Hub
      * @return An ArrayList of Commands as the response from the MePOS device
      * @throws HubResponseException
      */
-    protected ArrayList<Command> executeCommand(Command c, byte target, int timeout, byte sequenceNumber) throws HubResponseException, IOException
+    protected ArrayList<Envelope> executeCommand(Command c, byte target, int timeout, byte sequenceNumber) throws HubResponseException, IOException
     {
-        ArrayList<Command> responses = new ArrayList<Command>();
+        ArrayList<Envelope> responses = new ArrayList<Envelope>();
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
 
@@ -622,19 +664,21 @@ public class MePOSHub implements Hub
             throw e;
         }
 
-        mPort.open(connection);
         Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target, sequenceNumber));
 
         byte[] dataToSend = frames[0].getFrameData();
 
-        Log.d(TAG, String.format("Writing"));
-        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        Log.d(TAG, String.format("Writing %d bytes", dataToSend.length));
+        //Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        mPort.open(connection);
         int writeLen = mPort.write(dataToSend, timeout);
         Log.d(TAG, String.format("Wrote %d bytes", writeLen));
 
-        Log.d(TAG, "Calling response read");
-        if(FLOW_CONTROL)
-          responses  = readResponses(timeout);
+        if(mFlowControl)
+        {
+            Log.d(TAG, "Calling response read");
+            responses = readResponses(timeout);
+        }
 
         try
         {
@@ -655,18 +699,17 @@ public class MePOSHub implements Hub
      * @throws IOException
      * @throws HubResponseException
      */
-    protected ArrayList<Command> readResponses(int timeout) throws IOException, HubResponseException
+    protected ArrayList<Envelope> readResponses(int timeout) throws IOException, HubResponseException
     {
-        ArrayList<Command> responses = new ArrayList<Command>();
+        ArrayList<Envelope> responses = new ArrayList<Envelope>();
         byte[] readBuffer = new byte[MAX_FRAMESIZE];
         int bytesRead = 1;
         boolean waitingForResponse = true;
         long startTime = System.currentTimeMillis();
 
-        Log.d(TAG, "Starting to wait for response");
+        Log.d(TAG, "Waiting for response..");
         while(waitingForResponse  || bytesRead > 0)
         {
-            Log.d(TAG, "Waiting....");
             bytesRead  = mPort.read(readBuffer, timeout);
             if(waitingForResponse && bytesRead > 0)
             {
@@ -680,9 +723,9 @@ public class MePOSHub implements Hub
                 Log.d(TAG, "Timeout, not waiting for further responses");
             }
 
-            Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
             if(bytesRead > 0)
             {
+                Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
                 Log.d(TAG, "********************************************");
                 Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
                 Log.d(TAG, "********************************************");
@@ -692,8 +735,11 @@ public class MePOSHub implements Hub
                 byte[] responseBytes = new byte[bytesRead];
                 System.arraycopy(readBuffer, 0, responseBytes, 0, bytesRead);
                 //Deserialise response into a command
-                Command c = deserialise(responseBytes);
-                responses.add(c);
+                Envelope e = deserialise(responseBytes);
+                if(e != null)
+                {
+                    responses.add(e);
+                }
             }
         }
 
@@ -706,16 +752,15 @@ public class MePOSHub implements Hub
      * @return The completed Command object
      * @throws HubResponseException
      */
-    protected Command deserialise(byte[] response) throws HubResponseException
+    protected Envelope deserialise(byte[] response) throws HubResponseException
     {
-        Command c = null;
+        Envelope env = null;
         try
         {
             //Deserialise the response
             ResponseParser parser = new ResponseParser();
-            Envelope env = parser.process(response);
-            if(env != null)
-                c = env.getCommand();
+            env = parser.process(response);
+            Log.d("MePOS", String.format("Tag id : %x", env.getTag()));
         }
         catch(Exception e)
         {
@@ -726,6 +771,6 @@ public class MePOSHub implements Hub
             e.printStackTrace();
             //throw new MePOSResponseException("Cannot deserialise command", e);
         }
-        return c;
+        return env;
     }
 }
