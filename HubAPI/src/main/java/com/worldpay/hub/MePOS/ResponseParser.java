@@ -93,7 +93,7 @@ public class ResponseParser
                         break;
                     case STATE_TAG:
                         if (mCurrentEnvelope != null) {
-                            mCurrentEnvelope.setTag(b);
+                            mCurrentEnvelope.setTag((byte) (b & 0x7F));
                             mExpectedState = STATE_COMMAND_DATA;
                         }
                         break;

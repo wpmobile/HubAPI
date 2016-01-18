@@ -321,6 +321,7 @@ public class MePOSHub implements Hub
     public void print(PrinterQueue queue) throws HubResponseException, IOException
     {
         int seqNo = 1;
+        long lastReset = System.currentTimeMillis();
         PrinterCommand nextCommand = queue.getNextCommand();
         ByteBuffer bb = ByteBuffer.allocate(MAX_DATASIZE);  //Maximum data size.  This is different
                                                             //to the max frame size, and slicing is
@@ -371,6 +372,26 @@ public class MePOSHub implements Hub
             }
             //Move on to the next one
             nextCommand = queue.getNextCommand();
+        }
+
+        //Reset the sequence number if we've probably exceeded the time box
+        if(System.currentTimeMillis() > lastReset + 800)
+        {
+            //reset the sequence numbers
+            seqNo = 1;
+            lastReset = System.currentTimeMillis();
+            Log.d(TAG, "Resetting flow control sequence number");
+
+            //Add a 200 ms delay to ensure that flow control has reset on the hub.  I'd like
+            //to say that this is probably the hackiest thing I've ever done, but we both know
+            //that it wouldn't be true...
+            try
+            {
+                Thread.sleep(200);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
         }
 
         //Check to see if we've got anything buffered, but not printed
@@ -669,7 +690,7 @@ public class MePOSHub implements Hub
         byte[] dataToSend = frames[0].getFrameData();
 
         Log.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-        //Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
         mPort.open(connection);
         int writeLen = mPort.write(dataToSend, timeout);
         Log.d(TAG, String.format("Wrote %d bytes", writeLen));

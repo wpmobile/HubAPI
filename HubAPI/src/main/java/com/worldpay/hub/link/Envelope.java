@@ -55,6 +55,11 @@ public class Envelope
         mIsDirty = true;
     }
 
+    public void setTag(int tag)
+    {
+        setTag(tag & 0xFF);
+    }
+
     public byte getTag()
     {
         return mSequence;
@@ -112,7 +117,7 @@ public class Envelope
         if(mIsDirty)
         {
             mData = new byte[mCommand.getCommandLength() + 4]; //+1 Address
-                                                                    //+1 source
+            //+1 source
                                                                     //+1 command code
                                                                     //+1 tag
             mData[0] = mAddress;

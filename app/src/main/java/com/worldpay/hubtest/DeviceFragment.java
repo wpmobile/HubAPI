@@ -8,9 +8,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
@@ -19,7 +16,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.util.Printer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,7 +31,7 @@ import com.worldpay.hub.MePOS.MePOSHub;
 import com.worldpay.hub.MePOS.printer.commands.DownloadBitmap;
 import com.worldpay.hub.MePOS.printer.commands.Justify;
 import com.worldpay.hub.MePOS.printer.commands.PrintBitmap;
-import com.worldpay.hub.MePOS.printer.commands.Raster;
+import com.worldpay.hub.MePOS.printer.commands.RasterBitmap;
 import com.worldpay.hub.MePOS.printer.commands.Underline;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
@@ -59,7 +55,7 @@ import java.util.Set;
  */
 public class DeviceFragment extends Fragment
 {
-    private final String TAG = DeviceFragment.class.getSimpleName();
+    private final String TAG = "MePOS";
     PendingIntent mPermissionIntent;
     private UsbManager mUsbManager;
     private UsbSerialPort mPort;
@@ -72,6 +68,7 @@ public class DeviceFragment extends Fragment
     private Button mProbe;
     private Button mPrinterFeed;
     private Button mRasterPrint;
+    private Button mHDRasterPrint;
 
     private RadioButton mSelectUSB;
     private RadioButton mSelectBT;
@@ -224,7 +221,7 @@ public class DeviceFragment extends Fragment
                 }
 
                 //Change the hub
-                mListener.setHub(new MePOSHub(mPort, mUsbManager));
+                mListener.setHub(new MePOSHub(mPort, mUsbManager, true));
                 mDeviceType.setText("MePOS");
                 mDeviceName.setText(mPort.getDriver().getDevice().getDeviceName());
             }
@@ -289,7 +286,7 @@ public class DeviceFragment extends Fragment
                 byte[] picture = new byte[]{};
                 try
                 {
-                    InputStream is = getResources().openRawResource(R.raw.bmphack);
+                    InputStream is = getResources().openRawResource(R.raw.printgroup288);
                     picture = new byte[is.available()];
                     int read = is.read(picture);
                 } catch (IOException e)
@@ -300,16 +297,73 @@ public class DeviceFragment extends Fragment
                 //MePOS
                 PrinterQueue imageQueue = new PrinterQueue();
 
-                //Decode the bitmap
-                imageQueue.rasterPrint(picture);
-
                 try
                 {
+                    imageQueue.add(factory.FeedPaper(10))
+                              .add(factory.PrintText("Starting\n"));
+
+                    factory.PrintRasterImage(imageQueue, picture);
+
+                    imageQueue.add(factory.PrintText("Finished\n"))
+                              .add(factory.FeedPaper(10))
+                              .add(factory.CutPaper(PrinterFactory.CUT_FULL));
                     mListener.getHub().print(imageQueue);
                 } catch (HubResponseException e)
                 {
                     e.printStackTrace();
                 } catch (IOException e)
+                {
+                    e.printStackTrace();
+                } catch (PrinterCommandNotImplementedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        mHDRasterPrint = (Button) getActivity().findViewById(R.id.rasterHD);
+        mHDRasterPrint.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if(mListener.getHub() == null)
+                    return;
+
+                PrinterFactory factory = mListener.getHub().getPrinter();
+
+                byte[] picture = new byte[]{};
+                try
+                {
+                    InputStream is = getResources().openRawResource(R.raw.sjptest);
+                    picture = new byte[is.available()];
+                    int read = is.read(picture);
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+
+                //MePOS
+                PrinterQueue imageQueue = new PrinterQueue();
+
+                try
+                {
+                    imageQueue.add(factory.FeedPaper(10))
+                            .add(factory.PrintText("Starting\n"));
+
+                    factory.PrintRasterImage(imageQueue, picture);
+
+                    imageQueue.add(factory.PrintText("Finished\n"))
+                            .add(factory.FeedPaper(10))
+                            .add(factory.CutPaper(PrinterFactory.CUT_FULL));
+                    mListener.getHub().print(imageQueue);
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                } catch (PrinterCommandNotImplementedException e)
                 {
                     e.printStackTrace();
                 }
@@ -438,11 +492,11 @@ public class DeviceFragment extends Fragment
                 byte[] footer = new byte[]{};
                 try
                 {
-                    InputStream is = getResources().openRawResource(R.raw.tr1);
+                    InputStream is = getResources().openRawResource(R.raw.printgroup576);
                     header = new byte[is.available()];
                     int read = is.read(header);
 
-                    is = getResources().openRawResource(R.raw.tr2);
+                    is = getResources().openRawResource(R.raw.tr1);
                     footer = new byte[is.available()];
                     read = is.read(footer);
 
@@ -455,9 +509,8 @@ public class DeviceFragment extends Fragment
                 PrinterQueue queue = new PrinterQueue();
                 try
                 {
-                    queue.add(new DownloadBitmap(header))
-                            .add(new PrintBitmap())
-                            .add(factory.SetCodePage(32))
+                    factory.PrintRasterImage(queue, header);
+                    queue.add(factory.SetCodePage(32))
                             .add(factory.PrintText("Hello Sam\n"))
                             .add(factory.Underline(Underline.UNDERLINE_SINGLE))
                             .add(factory.PrintText("This is underlined\n"))
@@ -480,11 +533,11 @@ public class DeviceFragment extends Fragment
                             .add(factory.Justify(Justify.JUSTIFY_LEFT))
                             .add(factory.PrintText("Justify left\n"))
                             .add(factory.PrintText("................................\n"))
-                            .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"))
-                            .add(new DownloadBitmap(footer))
-                            .add(new PrintBitmap())
+                            .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"));
+
+                    factory.PrintRasterImage(queue, footer);
                        /* .add(factory.OpenDrawer())*/
-                            .add(factory.FeedPaper(10))
+                    queue.add(factory.FeedPaper(10))
                             .add(factory.CutPaper(PrinterFactory.CUT_FULL))
                             .add(factory.FeedPaper(2));
                 } catch (PrinterCommandNotImplementedException e)
@@ -545,7 +598,7 @@ public class DeviceFragment extends Fragment
                             driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
                     result.addAll(ports);
 
-                    Log.d("Sammy", String.format("Adding device %04X:%04X", driver.getDevice().getVendorId(), driver.getDevice().getProductId()));
+                    Log.d(TAG, String.format("Adding device %04X:%04X", driver.getDevice().getVendorId(), driver.getDevice().getProductId()));
                     mUSBNames.add(driver.getDevice().getDeviceName());
                 }
                 return result;

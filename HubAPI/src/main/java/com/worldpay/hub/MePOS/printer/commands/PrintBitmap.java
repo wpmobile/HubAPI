@@ -29,5 +29,5 @@ public class PrintBitmap extends PrinterCommand
     {
         mData = new byte[] { 0x1D, 0x23, (byte) index,  /* select logo */
         0x1D, 0x2F, 0x00           /* print image */};
-}
+    }
 }

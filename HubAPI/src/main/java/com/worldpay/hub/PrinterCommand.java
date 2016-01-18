@@ -2,6 +2,7 @@ package com.worldpay.hub;
 
 public class PrinterCommand
 {
+    protected static final String TAG = "MePOS";
     protected byte[] mData;
     protected int mDelay;
 

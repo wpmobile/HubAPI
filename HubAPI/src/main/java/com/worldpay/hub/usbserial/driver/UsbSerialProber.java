@@ -23,6 +23,7 @@ package com.worldpay.hub.usbserial.driver;
 
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -65,7 +66,7 @@ public class UsbSerialProber {
      */
     public List<UsbSerialDriver> findAllDrivers(final UsbManager usbManager) {
         final List<UsbSerialDriver> result = new ArrayList<UsbSerialDriver>();
-
+        Log.d("MePOS", String.format("Discovered %d devices", usbManager.getDeviceList().size()));
         for (final UsbDevice usbDevice : usbManager.getDeviceList().values()) {
             final UsbSerialDriver driver = probeDevice(usbDevice);
             if (driver != null) {
@@ -85,6 +86,7 @@ public class UsbSerialProber {
     public UsbSerialDriver probeDevice(final UsbDevice usbDevice) {
         final int vendorId = usbDevice.getVendorId();
         final int productId = usbDevice.getProductId();
+        Log.d("MePOS", String.format("VID: %04X PID: %04X", vendorId, productId));
 
         final Class<? extends UsbSerialDriver> driverClass =
                 mProbeTable.findDriver(vendorId, productId);

@@ -55,6 +55,10 @@ public final class UsbId {
     
     public static final int DEVICE_MEPOS = 0x2404;
 
+    public static final int VENDOR_UNIQUE_SECURE    = 0x2C8E;
+    public static final int DEVICE_MEPOS_PROCESSOR  = 0x2404;
+    public static final int DEVICE_MEPOS_DEVICE_HUB = 0x6506;
+
     public static final int VENDOR_VAN_OOIJEN_TECH = 0x16c0;
     public static final int VAN_OOIJEN_TECH_TEENSYDUINO_SERIAL = 0x0483;
 

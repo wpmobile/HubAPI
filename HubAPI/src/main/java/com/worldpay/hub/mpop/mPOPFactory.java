@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
+import com.worldpay.hub.PrinterQueue;
 import com.worldpay.hub.mpop.printer.commands.Beep;
 import com.worldpay.hub.mpop.printer.commands.Bold;
 import com.worldpay.hub.mpop.printer.commands.ClearPrinter;
@@ -264,5 +265,17 @@ public class mPOPFactory implements PrinterFactory
     public PrinterCommand SetCharacterSet(int mode) throws PrinterCommandNotImplementedException
     {
         return new SetCharacterSet(mode);
+    }
+
+    @Override
+    public PrinterCommand RasterPrint(byte[] picture) throws PrinterCommandNotImplementedException
+    {
+        throw new PrinterCommandNotImplementedException();
+    }
+
+    @Override
+    public void PrintRasterImage(PrinterQueue queue, byte[] picture)
+    {
+
     }
 }

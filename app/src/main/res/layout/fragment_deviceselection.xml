@@ -110,10 +110,17 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Raster Print"
+        android:text="SD Raster Print"
         android:id="@+id/raster"
         android:layout_below="@+id/openCashDrawer"
         android:layout_toRightOf="@+id/probe"
         android:layout_toEndOf="@+id/probe"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="HD Raster Print"
+        android:id="@+id/rasterHD"
+        android:layout_below="@+id/raster"/>
 
 </RelativeLayout>

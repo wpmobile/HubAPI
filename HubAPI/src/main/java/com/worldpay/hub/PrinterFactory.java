@@ -66,4 +66,6 @@ public interface PrinterFactory
     public PrinterCommand SingleWidthCharacters() throws PrinterCommandNotImplementedException;
     public PrinterCommand Underline(int mode) throws PrinterCommandNotImplementedException;
     public PrinterCommand SetCharacterSet(int set) throws PrinterCommandNotImplementedException;
+    public PrinterCommand RasterPrint(byte[] picture) throws PrinterCommandNotImplementedException;
+    public void PrintRasterImage(PrinterQueue queue, byte[] picture);
 }

@@ -343,11 +343,20 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
                 new int[] {
                     UsbId.VAN_OOIJEN_TECH_TEENSYDUINO_SERIAL,
                 });
+
+        //Unique Secure Alpha 1 and 2 boards
         supportedDevices.put(Integer.valueOf(UsbId.VENDOR_ATMEL),
                 new int[] {
                     UsbId.ATMEL_LUFA_CDC_DEMO_APP,
         			UsbId.DEVICE_MEPOS,
                 });
+
+        //Unique Secure Alpha 3 boards
+        supportedDevices.put(Integer.valueOf(UsbId.VENDOR_UNIQUE_SECURE),
+                new int[] {
+                        UsbId.DEVICE_MEPOS_PROCESSOR
+                });
+
         supportedDevices.put(Integer.valueOf(UsbId.VENDOR_LEAFLABS),
                 new int[] {
                     UsbId.LEAFLABS_MAPLE,
@@ -357,6 +366,7 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
         			UsbId.PRINTER_A798_COMM,
         			UsbId.PRINTER_A798_NATIVE,
         		});
+
         return supportedDevices;
     }
 
