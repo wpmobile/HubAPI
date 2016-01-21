@@ -335,7 +335,7 @@ public class DeviceFragment extends Fragment
                 byte[] picture = new byte[]{};
                 try
                 {
-                    InputStream is = getResources().openRawResource(R.raw.sjptest);
+                    InputStream is = getResources().openRawResource(R.raw.printgroup576);
                     picture = new byte[is.available()];
                     int read = is.read(picture);
                 } catch (IOException e)
@@ -380,7 +380,7 @@ public class DeviceFragment extends Fragment
                 if(mListener.getHub() == null)
                     return;
 
-                Log.d("Sammy", String.format("Starting print test"));
+                Log.d("MePOS", String.format("Starting print test"));
                 PrinterFactory factory = mListener.getHub().getPrinter();
 
 
@@ -453,25 +453,25 @@ public class DeviceFragment extends Fragment
                             .add(factory.FeedPaper(2));
                 } catch (PrinterCommandNotImplementedException e)
                 {
-                    Log.d("Sammy", "Command not implemented!");
+                    Log.d("MePOS", "Command not implemented!");
                     e.printStackTrace();
                 }
 
                 try
                 {
-                    Log.d("Sammy", String.format("Printing now"));
+                    Log.d("MePOS", String.format("Printing now"));
                     mListener.getHub().print(imageQueue);
                    // mListener.getHub().print(queue);
                 } catch (HubResponseException e)
                 {
-                    Log.d("Sammy", e.getMessage());
+                    Log.d("MePOS", e.getMessage());
                     e.printStackTrace();
                 } catch (IOException e)
                 {
-                    Log.d("Sammy", e.getMessage());
+                    Log.d("MePOS", e.getMessage());
                     e.printStackTrace();
                 }
-                Log.d("Sammy", String.format("Print finished"));
+                Log.d("MePOS", String.format("Print finished"));
             }
 
         });
@@ -505,59 +505,70 @@ public class DeviceFragment extends Fragment
                     e.printStackTrace();
                 }
 
-                //MePOS
-                PrinterQueue queue = new PrinterQueue();
-                try
+                for (int i = 0; i < 200; i++)
                 {
-                    factory.PrintRasterImage(queue, header);
-                    queue.add(factory.SetCodePage(32))
-                            .add(factory.PrintText("Hello Sam\n"))
-                            .add(factory.Underline(Underline.UNDERLINE_SINGLE))
-                            .add(factory.PrintText("This is underlined\n"))
-                            .add(factory.Underline(Underline.UNDERLINE_NONE))
+                    //MePOS
+                    PrinterQueue queue = new PrinterQueue();
+                    try
+                    {
+                        factory.PrintRasterImage(queue, header);
+                        queue.add(factory.SetCodePage(32))
+                                .add(factory.PrintText("Hello Sam\n"))
+                                .add(factory.Underline(Underline.UNDERLINE_SINGLE))
+                                .add(factory.PrintText("This is underlined\n"))
+                                .add(factory.Underline(Underline.UNDERLINE_NONE))
                         /*.add(factory.Beep())*/
-                            .add(factory.DoubleWidthCharacters())
-                            .add(factory.PrintText("This is wide\n"))
-                            .add(factory.SingleWidthCharacters())
-                            .add(factory.ClearPrinter())
-                            .add(factory.ReversePrintMode(PrinterFactory.REVERSE_ON))
-                            .add(factory.PrintText(" This is reversed \n"))
-                            .add(factory.ReversePrintMode(PrinterFactory.REVERSE_OFF))
-                            .add(factory.Bold(PrinterFactory.BOLD_ON))
-                            .add(factory.PrintText("This is bold\n"))
-                            .add(factory.Bold(PrinterFactory.BOLD_OFF))
-                            .add(factory.Justify(Justify.JUSTIFY_RIGHT))
-                            .add(factory.PrintText("Justify right\n"))
-                            .add(factory.Justify(Justify.JUSTIFY_CENTRE))
-                            .add(factory.PrintText("Justify centre\n"))
-                            .add(factory.Justify(Justify.JUSTIFY_LEFT))
-                            .add(factory.PrintText("Justify left\n"))
-                            .add(factory.PrintText("................................\n"))
-                            .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"));
+                                .add(factory.DoubleWidthCharacters())
+                                .add(factory.PrintText("This is wide\n"))
+                                .add(factory.SingleWidthCharacters())
+                                .add(factory.ClearPrinter())
+                                .add(factory.ReversePrintMode(PrinterFactory.REVERSE_ON))
+                                .add(factory.PrintText(" This is reversed \n"))
+                                .add(factory.ReversePrintMode(PrinterFactory.REVERSE_OFF))
+                                .add(factory.Bold(PrinterFactory.BOLD_ON))
+                                .add(factory.PrintText("This is bold\n"))
+                                .add(factory.Bold(PrinterFactory.BOLD_OFF))
+                                .add(factory.Justify(Justify.JUSTIFY_RIGHT))
+                                .add(factory.PrintText("Justify right\n"))
+                                .add(factory.Justify(Justify.JUSTIFY_CENTRE))
+                                .add(factory.PrintText("Justify centre\n"))
+                                .add(factory.Justify(Justify.JUSTIFY_LEFT))
+                                .add(factory.PrintText("Justify left\n"))
+                                .add(factory.PrintText("................................\n"))
+                                .add(factory.PrintText("1 x Bionic Arm             \u00A31.99\n"));
 
-                    factory.PrintRasterImage(queue, footer);
+                        factory.PrintRasterImage(queue, footer);
                        /* .add(factory.OpenDrawer())*/
-                    queue.add(factory.FeedPaper(10))
-                            .add(factory.CutPaper(PrinterFactory.CUT_FULL))
-                            .add(factory.FeedPaper(2));
-                } catch (PrinterCommandNotImplementedException e)
-                {
-                    e.printStackTrace();
-                }
+                        queue.add(factory.FeedPaper(10))
+                                .add(factory.CutPaper(PrinterFactory.CUT_FULL))
+                                .add(factory.FeedPaper(2));
+                    } catch (PrinterCommandNotImplementedException e)
+                    {
+                        e.printStackTrace();
+                    }
 
-                try
-                {
-                    mListener.getHub().print(queue);
-                } catch (HubResponseException e)
-                {
-                    Log.d("Sammy", e.getMessage());
-                    e.printStackTrace();
-                } catch (IOException e)
-                {
-                    Log.d("Sammy", e.getMessage());
-                    e.printStackTrace();
+                    try
+                    {
+                        mListener.getHub().print(queue);
+
+                    } catch (HubResponseException e)
+                    {
+                        Log.d("MePOS", e.getMessage());
+                        e.printStackTrace();
+                    } catch (IOException e)
+                    {
+                        Log.d("MePOS", e.getMessage());
+                        e.printStackTrace();
+                    }
+                    try
+                    {
+                        Thread.sleep(12000);
+                    } catch (InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
                 }
-                Log.d("Sammy", String.format("Print finished"));
+                Log.d("MePOS", String.format("Print finished"));
             }
 
         });

@@ -18,6 +18,10 @@ import com.worldpay.hub.MePOS.commands.SetPort;
 import com.worldpay.hub.MePOS.commands.SetSystemInformation;
 import com.worldpay.hub.MePOS.commands.SystemInformation;
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.MePOS.printer.commands.BatchedPrinterQueueProcessor;
+import com.worldpay.hub.MePOS.printer.commands.PassthroughPrinterQueueProcessor;
+import com.worldpay.hub.MePOS.printer.commands.PrinterFlusher;
+import com.worldpay.hub.MePOS.printer.commands.PrinterQueueProcessor;
 import com.worldpay.hub.PrinterFactory;
 import com.worldpay.hub.link.Envelope;
 import com.worldpay.hub.link.Frame;
@@ -34,7 +38,7 @@ import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 import com.worldpay.hub.usbserial.util.HexDump;
 
-public class MePOSHub implements Hub
+public class MePOSHub implements Hub, PrinterFlusher
 {
     protected final static String TAG = "MePOS";
     protected UsbSerialPort mPort;
@@ -88,6 +92,12 @@ public class MePOSHub implements Hub
         mPort = port;
         mManager = manager;
         mFlowControl = flowcontrol;
+    }
+
+    @Override
+    public void setFlowControl(boolean flowControl)
+    {
+        mFlowControl = flowControl;
     }
 
     /***
@@ -320,94 +330,20 @@ public class MePOSHub implements Hub
     @Override
     public void print(PrinterQueue queue) throws HubResponseException, IOException
     {
-        int seqNo = 1;
-        long lastReset = System.currentTimeMillis();
-        PrinterCommand nextCommand = queue.getNextCommand();
-        ByteBuffer bb = ByteBuffer.allocate(MAX_DATASIZE);  //Maximum data size.  This is different
-                                                            //to the max frame size, and slicing is
-                                                            //done later
-        while(nextCommand != null)
-        {
-            //Queue the command
-            if((bb.position() + nextCommand.getData().length) > MAX_DATASIZE)
-            {
-                //We've not got space for this yet
-                //we have to execute
-                try
-                {
-                    Log.d(TAG, "Buffer is full, flushing");
-                    seqNo = flushToPrinter(bb, seqNo);
-                    bb.clear();
-                }
-                catch(HubResponseException e)
-                {
-                    //Flush to printer has failed, abort
-                    return;
-                }
-            }
+        //Create the appropriate PrinterQueueProcessor based on the strategy
+        PrinterQueueProcessor queueProcessor = null;
 
-            //Log.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
-            //Log.d(TAG, String.format("Position offset : %02X", bb.position()));
-            bb.put(nextCommand.getData());
-            if(nextCommand.getDelay() > 0)
-            {
-                try
-                {
-                    Log.d(TAG, "Need to add a delay, flushing now");
-                    seqNo = flushToPrinter(bb, seqNo);
-                }
-                catch(HubResponseException e)
-                {
-                    //Flush to printer has failed, abort
-                    return;
-                }
+        //BatchedPrinterQueueProcessor implements a strategy of fewer, larger messages with flow control
+        //queueProcessor = new BatchedPrinterQueueProcessor(MAX_DATASIZE);
 
-                try
-                {
-                    Thread.sleep(nextCommand.getDelay());
-                } catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-            //Move on to the next one
-            nextCommand = queue.getNextCommand();
-        }
+        //PassthroughPrinterQueueProcessor implements a strategy of more, smaller messages with no flow control
+        queueProcessor = new PassthroughPrinterQueueProcessor();
 
-        //Reset the sequence number if we've probably exceeded the time box
-        if(System.currentTimeMillis() > lastReset + 800)
-        {
-            //reset the sequence numbers
-            seqNo = 1;
-            lastReset = System.currentTimeMillis();
-            Log.d(TAG, "Resetting flow control sequence number");
+        //The queue processor needs to delegate the actual transmission of data. In this case, back to MePOSHub
+        queueProcessor.setPrinterFlusher(this);
 
-            //Add a 200 ms delay to ensure that flow control has reset on the hub.  I'd like
-            //to say that this is probably the hackiest thing I've ever done, but we both know
-            //that it wouldn't be true...
-            try
-            {
-                Thread.sleep(200);
-            } catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
-        }
-
-        //Check to see if we've got anything buffered, but not printed
-        if(bb.position() > 0)
-        {
-            try
-            {
-                Log.d(TAG, "Flushing final data to printer");
-                seqNo = flushToPrinter(bb, seqNo);
-            }
-            catch(HubResponseException e)
-            {
-                //Flush to printer has failed, abort
-                return;
-            }
-        }
+        //And now, process that queue.
+        queueProcessor.print(queue);
     }
 
     /***
@@ -453,11 +389,16 @@ public class MePOSHub implements Hub
         executeCommand(io, IO_ADDRESS, DEFAULT_TIMEOUT);
     }
 
-    private int flushToPrinter(ByteBuffer bb, int sequenceNumber) throws HubResponseException, IOException
+    //** Implementation of PrinterFlusher
+    @Override
+    public void flush(byte[] buffer) throws HubResponseException, IOException
     {
-        byte[] buffer = new byte[bb.position()];
-        System.arraycopy(bb.array(), 0, buffer, 0, bb.position());
+        executeCommand(new RawData(buffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) 0x00);
+    }
 
+    @Override
+    public int flush(byte[] buffer, int sequenceNumber) throws HubResponseException, IOException
+    {
         //Split the data into chunks suitable for the hub
         int offset = 0;
         while(offset < buffer.length)
@@ -531,7 +472,6 @@ public class MePOSHub implements Hub
 
             offset += len;
         }
-        bb.clear();
 
         return sequenceNumber;
     }
@@ -690,10 +630,10 @@ public class MePOSHub implements Hub
         byte[] dataToSend = frames[0].getFrameData();
 
         Log.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        //Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
         mPort.open(connection);
         int writeLen = mPort.write(dataToSend, timeout);
-        Log.d(TAG, String.format("Wrote %d bytes", writeLen));
+        Log.d(TAG, String.format("Written %d bytes", writeLen));
 
         if(mFlowControl)
         {
