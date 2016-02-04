@@ -123,4 +123,17 @@
         android:id="@+id/rasterHD"
         android:layout_below="@+id/raster"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OTA Update Mode"
+        android:id="@+id/otamode"
+        android:layout_below="@+id/probe"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Upload Firmware"
+        android:id="@+id/firmware"
+        android:layout_below="@+id/rasterHD"/>
 </RelativeLayout>

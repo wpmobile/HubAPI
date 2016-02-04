@@ -27,6 +27,7 @@ import com.worldpay.hub.link.Envelope;
 import com.worldpay.hub.link.Frame;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
@@ -38,12 +39,14 @@ import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 import com.worldpay.hub.usbserial.util.HexDump;
 
+//TODO:  This is far too large and monolithic - break it down into classes.
+
 public class MePOSHub implements Hub, PrinterFlusher
 {
     protected final static String TAG = "MePOS";
     protected UsbSerialPort mPort;
     protected UsbManager mManager;
-    protected boolean mFlowControl = true;
+    protected boolean mFlowControl = false;
 
     protected final static byte HUB_ADDRESS = 0x18;
     protected final static byte PRINTER_ADDRESS = 0x12;
@@ -79,6 +82,8 @@ public class MePOSHub implements Hub, PrinterFlusher
 
     public static final int STATE_ON        = 1;
     public static final int STATE_OFF       = 0;
+
+    public static final int OTA_MODE = 1;
 
     public MePOSHub(UsbSerialPort port, UsbManager manager)
     {
@@ -476,6 +481,22 @@ public class MePOSHub implements Hub, PrinterFlusher
         return sequenceNumber;
     }
 
+    @Override
+    public void setMode(int mode) throws HubResponseException, IOException
+    {
+        if(mode == OTA_MODE)
+        {
+            Reset reset = new Reset();
+            reset.setMode(Reset.MODE_UPGRADE);
+            executeCommand(reset);
+        }
+    }
+
+    @Override
+    public void updateFirmware(InputStream firmware, int length) throws HubResponseException, IOException
+    {
+    }
+
     /**
      * Instructs the printer to feed n lines.  This also flushes the printer buffer.
      * @param lines
@@ -630,9 +651,50 @@ public class MePOSHub implements Hub, PrinterFlusher
         byte[] dataToSend = frames[0].getFrameData();
 
         Log.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-        //Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
-        mPort.open(connection);
-        int writeLen = mPort.write(dataToSend, timeout);
+        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+
+        Log.d(TAG, "Opening port");
+        try
+        {
+            mPort.open(connection);
+        }
+        catch(IOException io)
+        {
+            Log.d(TAG, "Port open failed");
+            throw io;
+        }
+        //For robustness, do some automatic retries
+        int failureCount = 0;
+        boolean writeSuccess = false;
+        int writeLen = 0;
+        while(!writeSuccess)
+        {
+            try
+            {
+                writeLen = mPort.write(dataToSend, timeout);
+
+                //If we've not thrown an exception, then retry.
+                writeSuccess = true;
+            } catch (IOException e)
+            {
+                failureCount++;
+                if (failureCount > 5)
+                {
+                    mPort.close();
+                    throw new IOException(e);
+                }
+                //Wait to allow time for the line to clear
+                try
+                {
+                    Log.d(TAG, "Port failure - sleep and retry");
+                    Thread.sleep(250);
+                } catch (InterruptedException ie)
+                {
+                    ie.printStackTrace();
+                }
+            }
+        }
+
         Log.d(TAG, String.format("Written %d bytes", writeLen));
 
         if(mFlowControl)

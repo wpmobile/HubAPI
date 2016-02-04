@@ -26,7 +26,10 @@ import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.ftdi.j2xx.D2xxManager;
+import com.ftdi.j2xx.FT_Device;
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.MePOS.FirmwareUpdate;
 import com.worldpay.hub.MePOS.MePOSHub;
 import com.worldpay.hub.MePOS.printer.commands.DownloadBitmap;
 import com.worldpay.hub.MePOS.printer.commands.Justify;
@@ -56,6 +59,10 @@ import java.util.Set;
 public class DeviceFragment extends Fragment
 {
     private final String TAG = "MePOS";
+    public static D2xxManager ftD2xx = null;
+    FT_Device ftDev;
+    final byte XON = 0x11;    /* Resume transmission */
+    final byte XOFF = 0x13;    /* Pause transmission */
     PendingIntent mPermissionIntent;
     private UsbManager mUsbManager;
     private UsbSerialPort mPort;
@@ -69,6 +76,8 @@ public class DeviceFragment extends Fragment
     private Button mPrinterFeed;
     private Button mRasterPrint;
     private Button mHDRasterPrint;
+    private Button mOTAMode;
+    private Button mStartUpdate;
 
     private RadioButton mSelectUSB;
     private RadioButton mSelectBT;
@@ -82,6 +91,7 @@ public class DeviceFragment extends Fragment
 
     private static final int MESSAGE_REFRESH = 101;
     private static final int REQUEST_ENABLE_BT = 1;
+    private static final int OTA_MODE = 1;
 
 
     private final Handler mHandler = new Handler()
@@ -233,6 +243,102 @@ public class DeviceFragment extends Fragment
             }
         });
 
+        mOTAMode = (Button) getActivity().findViewById(R.id.otamode);
+        mOTAMode.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                try
+                {
+                    mListener.getHub().setMode(OTA_MODE);
+                }
+                catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        mStartUpdate = (Button) getActivity().findViewById(R.id.firmware);
+        mStartUpdate.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                try
+                {
+                    Log.d(TAG, "Getting D2XXManager");
+                    ftD2xx = D2xxManager.getInstance(getActivity().getApplicationContext());
+
+                    Log.d(TAG, "Getting device count");
+                    int deviceCount = ftD2xx.createDeviceInfoList(getActivity().getApplicationContext());
+
+                    if(deviceCount > 0)
+                    {
+                        Log.d(TAG, "Getting device 0");
+                        ftDev = ftD2xx.openByIndex(getActivity().getApplicationContext(), 0);
+
+
+                        Log.d(TAG, "Setting parameters");
+                        ftDev.setBitMode((byte) 0, D2xxManager.FT_BITMODE_RESET);
+
+                        ftDev.setBaudRate(115200);
+
+                        ftDev.setDataCharacteristics(D2xxManager.FT_DATA_BITS_8,
+                                D2xxManager.FT_STOP_BITS_1,
+                                D2xxManager.FT_PARITY_NONE);
+
+                        ftDev.setFlowControl(D2xxManager.FT_FLOW_NONE, XON, XOFF);
+                        Log.d(TAG, "OTA Device configured");
+
+                        InputStream is = getResources().openRawResource(R.raw.applet_flash_sam4s16);
+                        Log.d(TAG, "Read in the firmware, starting to push to hub");
+                        FirmwareUpdate updater = new FirmwareUpdate(ftDev);
+                        //We have to send a patch applet to update boards correctly.
+                        updater.sendFirmware(is, is.available());
+
+                        //Then we have to send some arbitary commands :-(
+                        //we don't know what they do!
+                        updater.send("W20000840,00000000#W20000848,00000001#W2000084C,0000\n" +
+                                "0001#W20000850,00000000#W20000854,00000000#W20000858\n" +
+                                ",00000000#G20000800#");
+
+                        //Then we send part one of the firmware
+                        is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_1);
+                        updater.sendFirmware(is, is.available());
+                        //Then some more arbitary code
+                        updater.send("W20000840,00000002#W20000848,20002174#W2000084C,00010000#W20000850,00000000#G20000800#");
+                        //Then we send part two of the firmware and code
+                        is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_2);
+                        updater.sendFirmware(is, is.available());
+                        updater.send("W20000840,00000002#W20000848,20002174#W2000084C,00008550#W20000850,00010000#G20000800#");
+
+                        //Commit the firmware, and return the board to MePOS functionality
+                        updater.commitFirmware();
+                    }
+                }
+                catch (D2xxManager.D2xxException e)
+                {
+                    Log.e(TAG,"Cannot get instance of FTDI driver");
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+
+                //We should only see one device now, the board for firmware update.
+                if(mUSBEntries.size() == 1)
+                {
+                    mPort = mUSBEntries.get(0);
+                }
+            }
+        });
 
         mDrawer = (Button) getActivity().findViewById(R.id.openCashDrawer);
         mDrawer.setOnClickListener(new View.OnClickListener()
@@ -588,6 +694,7 @@ public class DeviceFragment extends Fragment
         mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, 2000);
     }
 
+
     private void refreshDeviceList()
     {
         new AsyncTask<Void, Void, List<UsbSerialPort>>()
@@ -628,26 +735,27 @@ public class DeviceFragment extends Fragment
 
         //Get Bluetooth devices
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    if (mBluetoothAdapter != null)
-    {
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        // If there are paired devices
-        if (pairedDevices.size() > 0) {
-            // Loop through paired devices
-            for (BluetoothDevice device : pairedDevices) {
-                // Add the name and address to an array adapter to show in a ListView
-                mBTAdapter.add(device.getName()/* + "\n" + device.getAddress()*/);
+        if (mBluetoothAdapter != null)
+        {
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             }
+
+
+            Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+            // If there are paired devices
+            if (pairedDevices.size() > 0) {
+                // Loop through paired devices
+                for (BluetoothDevice device : pairedDevices) {
+                    // Add the name and address to an array adapter to show in a ListView
+                    mBTAdapter.add(device.getName()/* + "\n" + device.getAddress()*/);
+                }
+            }
+            Log.d(TAG, "Done refreshing USB, " + mUSBEntries.size() + " entries found.");
         }
-        Log.d(TAG, "Done refreshing USB, " + mUSBEntries.size() + " entries found.");
+
     }
-}
 
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver()

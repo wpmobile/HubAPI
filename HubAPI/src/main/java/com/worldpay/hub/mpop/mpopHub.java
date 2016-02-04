@@ -14,6 +14,7 @@ import com.worldpay.hub.mpop.printer.commands.FeedPaper;
 import com.worldpay.hub.PrinterCommand;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -84,6 +85,18 @@ public class mpopHub implements Hub
     public boolean hasPaper() throws HubResponseException, IOException
     {
         return false;
+    }
+
+    @Override
+    public void setMode(int mode) throws HubResponseException, IOException
+    {
+        //TODO;
+    }
+
+    @Override
+    public void updateFirmware(InputStream firmware, int length) throws HubResponseException, IOException
+    {
+        //TODO:
     }
 
     @Override

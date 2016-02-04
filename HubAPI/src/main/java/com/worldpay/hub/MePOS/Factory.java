@@ -543,7 +543,7 @@ public class Factory implements PrinterFactory
                 }
             }
 
-            //Log.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
+            Log.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
             queue.add(new RasterBitmap(slice));
         }
     }
