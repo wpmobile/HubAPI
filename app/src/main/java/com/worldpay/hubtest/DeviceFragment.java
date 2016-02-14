@@ -295,27 +295,26 @@ public class DeviceFragment extends Fragment
                         ftDev.setFlowControl(D2xxManager.FT_FLOW_NONE, XON, XOFF);
                         Log.d(TAG, "OTA Device configured");
 
-                        InputStream is = getResources().openRawResource(R.raw.applet_flash_sam4s16);
                         Log.d(TAG, "Read in the firmware, starting to push to hub");
                         FirmwareUpdate updater = new FirmwareUpdate(ftDev);
-                        //We have to send a patch applet to update boards correctly.
-                        updater.sendFirmware(is, is.available());
 
-                        //Then we have to send some arbitary commands :-(
-                        //we don't know what they do!
-                        updater.send("W20000840,00000000#W20000848,00000001#W2000084C,0000\n" +
-                                "0001#W20000850,00000000#W20000854,00000000#W20000858\n" +
-                                ",00000000#G20000800#");
+                        //We have to send a patch applet to update boards correctly.
+                        //The buffer address is a bit of a magic number, as ultimately I don't know
+                        //what it refers to.  It seems that you should always use this value for
+                        //the applet
+                        InputStream is = getResources().openRawResource(R.raw.applet_flash_sam4s16);
+                        updater.sendLoader(is);
 
                         //Then we send part one of the firmware
+                        //Similarly, the buffer address here looks like it will be the same for all
+                        //firmware updates
                         is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_1);
-                        updater.sendFirmware(is, is.available());
-                        //Then some more arbitary code
-                        updater.send("W20000840,00000002#W20000848,20002174#W2000084C,00010000#W20000850,00000000#G20000800#");
+                        updater.sendFirmware(is, is.available(), 0);
+
                         //Then we send part two of the firmware and code
                         is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_2);
-                        updater.sendFirmware(is, is.available());
-                        updater.send("W20000840,00000002#W20000848,20002174#W2000084C,00008550#W20000850,00010000#G20000800#");
+                        //The offset here is 10000 because that is the length in bytes of part 1.
+                        updater.sendFirmware(is, is.available(), 10000);
 
                         //Commit the firmware, and return the board to MePOS functionality
                         updater.commitFirmware();
