@@ -303,21 +303,24 @@ public class DeviceFragment extends Fragment
                         //what it refers to.  It seems that you should always use this value for
                         //the applet
                         InputStream is = getResources().openRawResource(R.raw.applet_flash_sam4s16);
-                        updater.sendLoader(is);
+                        updater.sendLoader(is, is.available());
 
                         //Then we send part one of the firmware
                         //Similarly, the buffer address here looks like it will be the same for all
                         //firmware updates
                         is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_1);
-                        updater.sendFirmware(is, is.available(), 0);
+                        updater.sendFirmware(is, is.available(), 0x00);
 
                         //Then we send part two of the firmware and code
                         is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_2);
                         //The offset here is 10000 because that is the length in bytes of part 1.
-                        updater.sendFirmware(is, is.available(), 10000);
+                        updater.sendFirmware(is, is.available(), 0x10000);
 
                         //Commit the firmware, and return the board to MePOS functionality
                         updater.commitFirmware();
+                        updater.close();
+
+                        //Reboot the MePOS
                     }
                 }
                 catch (D2xxManager.D2xxException e)
