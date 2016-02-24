@@ -29,7 +29,7 @@ public class ShortDate
         String date = String.format("%02d-%02d-%04d %02d:%02d:%02d",
                 mShortDate[2], mShortDate[1], mShortDate[0] + 2000,
                 mShortDate[3], mShortDate[4], mShortDate[5]);
-        //Log.d("MePOS", date);
+        //Logger.d("MePOS", date);
         DateFormat df = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
         try

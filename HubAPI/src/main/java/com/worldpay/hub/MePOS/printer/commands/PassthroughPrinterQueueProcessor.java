@@ -3,6 +3,7 @@ package com.worldpay.hub.MePOS.printer.commands;
 import android.util.Log;
 
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.PrinterQueue;
 
@@ -32,7 +33,7 @@ public class PassthroughPrinterQueueProcessor implements PrinterQueueProcessor
             {
                 try
                 {
-                    Log.d(TAG, "Need to add a delay");
+                    Logger.d(TAG, "Need to add a delay");
                     Thread.sleep(nextCommand.getDelay());
                 } catch (InterruptedException e)
                 {

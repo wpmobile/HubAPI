@@ -23,6 +23,7 @@ package com.worldpay.hub.usbserial.util;
 
 import android.util.Log;
 
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 
 import java.io.IOException;
@@ -37,7 +38,6 @@ import java.nio.ByteBuffer;
 public class SerialInputOutputManager implements Runnable {
 
     private static final String TAG = SerialInputOutputManager.class.getSimpleName();
-    private static final boolean DEBUG = true;
 
     private static final int READ_WAIT_MILLIS = 200;
     private static final int BUFSIZ = 4096;
@@ -117,7 +117,7 @@ public class SerialInputOutputManager implements Runnable {
     /**
      * Continuously services the read and write buffers until {@link #stop()} is
      * called, or until a driver exception is raised.
-     *
+     * <p/>
      * NOTE(mikey): Uses inefficient read/write-with-timeout.
      * TODO(mikey): Read asynchronously with {@link android.hardware.usb.UsbRequest#queue(java.nio.ByteBuffer, int)}
      */
@@ -143,7 +143,7 @@ public class SerialInputOutputManager implements Runnable {
             Log.w(TAG, "Run ending due to exception: " + e.getMessage(), e);
             final Listener listener = getListener();
             if (listener != null) {
-              listener.onRunError(e);
+                listener.onRunError(e);
             }
         } finally {
             synchronized (this) {
@@ -157,7 +157,7 @@ public class SerialInputOutputManager implements Runnable {
         // Handle incoming data.
         int len = mDriver.read(mReadBuffer.array(), READ_WAIT_MILLIS);
         if (len > 0) {
-            if (DEBUG) Log.d(TAG, "Read data len=" + len);
+            Logger.d(TAG, "Read data len=" + len);
             final Listener listener = getListener();
             if (listener != null) {
                 final byte[] data = new byte[len];
@@ -179,9 +179,7 @@ public class SerialInputOutputManager implements Runnable {
             }
         }
         if (outBuff != null) {
-            if (DEBUG) {
-                Log.d(TAG, "Writing data len=" + len);
-            }
+            Logger.d(TAG, "Writing data len=" + len);
             mDriver.write(outBuff, READ_WAIT_MILLIS);
         }
     }

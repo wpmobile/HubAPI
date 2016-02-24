@@ -28,6 +28,7 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbRequest;
 import android.util.Log;
 
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.usbserial.util.HexDump;
 
 import java.io.IOException;
@@ -249,7 +250,7 @@ public class FtdiSerialDriver implements UsbSerialDriver {
             try {
                 for (int i = 0; i < mDevice.getInterfaceCount(); i++) {
                     if (connection.claimInterface(mDevice.getInterface(i), true)) {
-                        Log.d(TAG, "claimInterface " + i + " SUCCESS");
+                        Logger.d(TAG, "claimInterface " + i + " SUCCESS");
                     } else {
                         throw new IOException("Error claiming interface " + i);
                     }
@@ -302,7 +303,7 @@ public class FtdiSerialDriver implements UsbSerialDriver {
 
                 final int payloadBytesRead = buf.position() - MODEM_STATUS_HEADER_LENGTH;
                 if (payloadBytesRead > 0) {
-                    Log.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
+                    Logger.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
                     return payloadBytesRead;
                 } else {
                     return 0;
@@ -354,7 +355,7 @@ public class FtdiSerialDriver implements UsbSerialDriver {
                             + " bytes at offset " + offset + " length=" + src.length);
                 }
 
-                Log.d(TAG, "Wrote amtWritten=" + amtWritten + " attempted=" + writeLength);
+                Logger.d(TAG, "Wrote amtWritten=" + amtWritten + " attempted=" + writeLength);
                 offset += amtWritten;
             }
             return offset;

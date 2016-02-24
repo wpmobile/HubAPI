@@ -4,6 +4,7 @@ import android.hardware.usb.UsbManager;
 import android.util.Log;
 
 import com.worldpay.hub.Hub;
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.MePOS.commands.Command;
 import com.worldpay.hub.MePOS.commands.GetClock;
 import com.worldpay.hub.MePOS.commands.GetSerialNumber;
@@ -84,6 +85,7 @@ public class MePOSHub implements Hub, PrinterFlusher
     public static final int STATE_OFF       = 0;
 
     public static final int OTA_MODE = 1;
+    public static boolean DEBUG_LOG_ENABLED = false;
 
     public MePOSHub(UsbSerialPort port, UsbManager manager)
     {
@@ -412,7 +414,7 @@ public class MePOSHub implements Hub, PrinterFlusher
             if((buffer.length - offset) < CHUNKSIZE)
                 len = buffer.length - offset;
 
-            Log.d(TAG, String.format("Created a send buffer of %d bytes", len));
+            Logger.d(TAG, String.format("Created a send buffer of %d bytes", len));
             byte[] sendBuffer = new byte[len];
 
             //Copy this chunk to the send buffer
@@ -426,24 +428,24 @@ public class MePOSHub implements Hub, PrinterFlusher
 
             if(mFlowControl)
             {
-                Log.d(TAG, "Flow control is ON");
+                Logger.d(TAG, "Flow control is ON");
                 while (responses == null || responses.size() == 0)
                 {
-                    Log.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
-                    Log.d(TAG, String.format("Attempt number %d", failureCount + 1));
+                    Logger.d(TAG, String.format("Flushing sequence %d to printer", sequenceNumber));
+                    Logger.d(TAG, String.format("Attempt number %d", failureCount + 1));
                     responses = executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) sequenceNumber);
 
-                    Log.d(TAG, String.format("Got %d responses", responses.size()));
+                    Logger.d(TAG, String.format("Got %d responses", responses.size()));
 
                     //Search responses for response to this command tag
                     boolean found = false;
                     for(Envelope e : responses)
                     {
-                        Log.d(TAG, "Checking responses");
-                        Log.d(TAG, String.format("Sent: %d  Recv: %d", sequenceNumber, e.getTag()));
+                        Logger.d(TAG, "Checking responses");
+                        Logger.d(TAG, String.format("Sent: %d  Recv: %d", sequenceNumber, e.getTag()));
                         if (!found && e.getTag() == (byte) sequenceNumber)
                         {
-                            Log.d(TAG, "Found ack for this section - proceed with next part");
+                            Logger.d(TAG, "Found ack for this section - proceed with next part");
                             found = true;
                             continue;
                         }
@@ -452,7 +454,7 @@ public class MePOSHub implements Hub, PrinterFlusher
                     if (responses == null || responses.size() == 0 || !found)
                     {
                         failureCount++;
-                        Log.d(TAG, "Attempt failed, will retry");
+                        Logger.d(TAG, "Attempt failed, will retry");
                     }
 
                     if (failureCount > MAX_FAILURES)
@@ -468,12 +470,12 @@ public class MePOSHub implements Hub, PrinterFlusher
             else
             {
                 //No flow control, just send
-                //Log.d(TAG, "Sending full queue to printer");
-                //Log.d(TAG, String.format("Sending %d bytes to printer", sendBuffer.length));
+                //Logger.d(TAG, "Sending full queue to printer");
+                //Logger.d(TAG, String.format("Sending %d bytes to printer", sendBuffer.length));
                 executeCommand(new RawData(sendBuffer), PRINTER_ADDRESS, DEFAULT_TIMEOUT, (byte) sequenceNumber);
             }
 
-            Log.d(TAG, "Sent printer part to buffer");
+            Logger.d(TAG, "Sent printer part to buffer");
 
             offset += len;
         }
@@ -638,7 +640,7 @@ public class MePOSHub implements Hub, PrinterFlusher
 
         UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
 
-        //Log.d(TAG, "Link established");
+        //Logger.d(TAG, "Link established");
 
         if (connection == null) {
             IOException e = new IOException();
@@ -649,18 +651,17 @@ public class MePOSHub implements Hub, PrinterFlusher
         Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target, sequenceNumber));
 
         byte[] dataToSend = frames[0].getFrameData();
+            Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
+            Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
 
-        Log.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-        Log.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
-
-        Log.d(TAG, "Opening port");
+        Logger.d(TAG, "Opening port");
         try
         {
             mPort.open(connection);
         }
         catch(IOException io)
         {
-            Log.d(TAG, "Port open failed");
+            Logger.d(TAG, "Port open failed");
             throw io;
         }
         //For robustness, do some automatic retries
@@ -686,7 +687,7 @@ public class MePOSHub implements Hub, PrinterFlusher
                 //Wait to allow time for the line to clear
                 try
                 {
-                    Log.d(TAG, "Port failure - sleep and retry");
+                    Logger.d(TAG, "Port failure - sleep and retry");
                     Thread.sleep(250);
                 } catch (InterruptedException ie)
                 {
@@ -695,11 +696,11 @@ public class MePOSHub implements Hub, PrinterFlusher
             }
         }
 
-        Log.d(TAG, String.format("Written %d bytes", writeLen));
+        Logger.d(TAG, String.format("Written %d bytes", writeLen));
 
         if(mFlowControl)
         {
-            Log.d(TAG, "Calling response read");
+            Logger.d(TAG, "Calling response read");
             responses = readResponses(timeout);
         }
 
@@ -730,29 +731,29 @@ public class MePOSHub implements Hub, PrinterFlusher
         boolean waitingForResponse = true;
         long startTime = System.currentTimeMillis();
 
-        Log.d(TAG, "Waiting for response..");
+        Logger.d(TAG, "Waiting for response..");
         while(waitingForResponse  || bytesRead > 0)
         {
             bytesRead  = mPort.read(readBuffer, timeout);
             if(waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Read some data, not waiting for further responses");
+                Logger.d(TAG, "Read some data, not waiting for further responses");
             }
 
             if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
-                Log.d(TAG, "Timeout, not waiting for further responses");
+                Logger.d(TAG, "Timeout, not waiting for further responses");
             }
 
             if(bytesRead > 0)
             {
-                Log.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
-                Log.d(TAG, "********************************************");
-                Log.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Log.d(TAG, "********************************************");
-                Log.d(TAG, String.format("Read %d bytes", bytesRead));
+                Logger.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+                Logger.d(TAG, "********************************************");
+                Logger.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
+                Logger.d(TAG, "********************************************");
+                Logger.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes
                 byte[] responseBytes = new byte[bytesRead];
@@ -783,7 +784,7 @@ public class MePOSHub implements Hub, PrinterFlusher
             //Deserialise the response
             ResponseParser parser = new ResponseParser();
             env = parser.process(response);
-            Log.d("MePOS", String.format("Tag id : %x", env.getTag()));
+            Logger.d("MePOS", String.format("Tag id : %x", env.getTag()));
         }
         catch(Exception e)
         {

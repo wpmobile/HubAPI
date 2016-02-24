@@ -11,6 +11,7 @@ import com.ftdi.j2xx.D2xxManager;
 import com.ftdi.j2xx.FT_Device;
 import com.worldpay.hub.Checksum;
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.MePOS.firmware.Command;
 import com.worldpay.hub.usbserial.util.HexDump;
 
@@ -86,7 +87,7 @@ public class FirmwareUpdate
         Command selectRAMBank = new Command(Command.TYPE_WRITE_WORD, 0x20000850, 0x00);
         Command executeCodeFromAddress = new Command(Command.TYPE_GO_COMMAND, 0x20000800);
 
-        Log.d(TAG, "Sending start signal");
+        Logger.d(TAG, "Sending start signal");
         send(beforeFirmware, CHAR_C);
 
         mBytesSent = 0;
@@ -132,7 +133,7 @@ public class FirmwareUpdate
         Command offsetCommand = new Command(Command.TYPE_WRITE_WORD, 0x20000850, offset);
         Command executeCodeFromAddress = new Command(Command.TYPE_GO_COMMAND, 0x20000800);
 
-        Log.d(TAG, "Sending start signal");
+        Logger.d(TAG, "Sending start signal");
         send(beforeFirmware, CHAR_C);
 
         mBytesSent = 0;
@@ -175,9 +176,9 @@ public class FirmwareUpdate
         try
         {
             data = command.toString().getBytes("ISO-8859-1");
-            Log.d(TAG, String.format("Writing %d bytes", data.length));
+            Logger.d(TAG, String.format("Writing %d bytes", data.length));
             String writeData = HexDump.dumpHexString(data, 0, data.length);
-            Log.d(TAG, writeData);
+            Logger.d(TAG, writeData);
 
             mLastReceipt = NUL;
             mHub.write(data, data.length);
@@ -203,9 +204,9 @@ public class FirmwareUpdate
         try
         {
             data = code.getBytes("ISO-8859-1");
-            Log.d(TAG, String.format("Writing %d bytes", data.length));
+            Logger.d(TAG, String.format("Writing %d bytes", data.length));
             String writeData = HexDump.dumpHexString(data, 0, data.length);
-            Log.d(TAG, writeData);
+            Logger.d(TAG, writeData);
             mHub.write(data, data.length);
         } catch (UnsupportedEncodingException e)
         {
@@ -231,7 +232,7 @@ public class FirmwareUpdate
 
             //Check to see if there is at least DATA_SIZE_128 bytes left between length (the total length)
             //and mBytesSent (the number of bytes read)
-            Log.d(TAG, String.format("%d byte remain", length - mBytesSent));
+            Logger.d(TAG, String.format("%d byte remain", length - mBytesSent));
             if(length - mBytesSent < DATA_SIZE_128)
             {
                 //we don't have a full 128 bytes to read
@@ -276,7 +277,7 @@ public class FirmwareUpdate
                 throw new HubResponseException("Send firmware failed");
             }
 
-            Log.d(TAG, String.format("Sent 0x%X bytes of 0x%X", mBytesSent, length));
+            Logger.d(TAG, String.format("Sent 0x%X bytes of 0x%X", mBytesSent, length));
         }
 
         //Send end of transmission marker
@@ -328,7 +329,7 @@ public class FirmwareUpdate
         byte[] crc = calCrc(sendBuffer, 3, DATA_SIZE_128);
         sendBuffer[131] = crc[0];    //MSB
         sendBuffer[132] = crc[1];    //LSB
-       // Log.d(TAG, String.format("Checksum %02X%02X", sendBuffer[131], sendBuffer[132]));
+       // Logger.d(TAG, String.format("Checksum %02X%02X", sendBuffer[131], sendBuffer[132]));
 
         //Send the data to the hub
         sendData(sendBuffer, PACKET_SIZE_XMODEM_CRC);
@@ -374,9 +375,9 @@ public class FirmwareUpdate
 
     protected void sendData(byte[] data, int length)
     {
-        //Log.d(TAG, String.format("Writing %d bytes", length));
+        //Logger.d(TAG, String.format("Writing %d bytes", length));
         String writeData = HexDump.dumpHexString(data, 0, data.length);
-        Log.d(TAG, writeData);
+        Logger.d(TAG, writeData);
         mHub.write(data, length);
     }
 
@@ -417,7 +418,7 @@ public class FirmwareUpdate
                 }
 
                 readcount = mHub.getQueueStatus();
-                //Log.d(TAG,"iavailable:" + readcount);
+                //Logger.d(TAG,"iavailable:" + readcount);
                 if (readcount > 0)
                 {
                     if(readcount > USB_DATA_BUFFER)
@@ -429,7 +430,7 @@ public class FirmwareUpdate
                     for (int i = 0; i < readcount; i++)
                     {
                         modemDataBuffer[i] = usbdata[i];
-                        //Log.d(TAG, "RT usbdata[" + i + "]:(" + usbdata[i] + ")");
+                        //Logger.d(TAG, "RT usbdata[" + i + "]:(" + usbdata[i] + ")");
 
                         if(usbdata[i] == NAK
                         || usbdata[i] == ACK
@@ -439,19 +440,19 @@ public class FirmwareUpdate
                         || usbdata[i] == CHAR_C)
                         {
                             mLastReceipt = usbdata[i];
-                            Log.d(TAG, String.format("Got response: 0x%02X", usbdata[i]));
+                            Logger.d(TAG, String.format("Got response: 0x%02X", usbdata[i]));
                             if(usbdata[i] == CAN)
-                                Log.d(TAG, "Cancel signal received");
+                                Logger.d(TAG, "Cancel signal received");
                         }
                     }
                     //Ignore other response bytes
                 }
                 else
                 {
-                   // Log.d(TAG, "No response from board");
+                   // Logger.d(TAG, "No response from board");
                 }
             }
-            Log.d(TAG, "Read thread interrupted");
+            Logger.d(TAG, "Read thread interrupted");
         }
 
 

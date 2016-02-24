@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.worldpay.hub.Hub;
 import com.worldpay.hub.HubResponseException;
 import com.worldpay.hub.MePOS.MePOSHub;
 import com.worldpay.hub.MePOS.commands.SystemInformation;

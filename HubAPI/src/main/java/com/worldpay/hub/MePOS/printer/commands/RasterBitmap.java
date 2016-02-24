@@ -50,7 +50,7 @@ public class RasterBitmap extends PrinterCommand
         mData[3] = (byte)(len & 0xFF);
         mData[4] = (byte)((len >> 8) & 0xFF);
 
-        //Log.d("MePOS", String.format("len %d nl %d nh %d mode %d", len, mData[3], mData[4], mode));
+        //Logger.d("MePOS", String.format("len %d nl %d nh %d mode %d", len, mData[3], mData[4], mode));
 
         System.arraycopy(bitmap, 0, mData, 5, bitmap.length);
         mData[mData.length - 1] = 0x0A;

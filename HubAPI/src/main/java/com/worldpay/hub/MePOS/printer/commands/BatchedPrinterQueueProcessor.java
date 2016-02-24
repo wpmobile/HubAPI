@@ -3,6 +3,7 @@ package com.worldpay.hub.MePOS.printer.commands;
 import android.util.Log;
 
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.PrinterCommand;
 import com.worldpay.hub.PrinterQueue;
 
@@ -56,7 +57,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 //we have to execute
                 try
                 {
-                    Log.d(TAG, "Buffer is full, flushing");
+                    Logger.d(TAG, "Buffer is full, flushing");
                     seqNo = mFlusher.flush(bb.array(), seqNo);
                     bb.clear();
                 }
@@ -67,14 +68,14 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 }
             }
 
-            //Log.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
-            //Log.d(TAG, String.format("Position offset : %02X", bb.position()));
+            //Logger.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
+            //Logger.d(TAG, String.format("Position offset : %02X", bb.position()));
             bb.put(nextCommand.getData());
             if(nextCommand.getDelay() > 0)
             {
                 try
                 {
-                    Log.d(TAG, "Need to add a delay, flushing now");
+                    Logger.d(TAG, "Need to add a delay, flushing now");
                     seqNo = mFlusher.flush(bb.array(), seqNo);
                 }
                 catch(HubResponseException e)
@@ -101,7 +102,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
             //reset the sequence numbers
             seqNo = 1;
             lastReset = System.currentTimeMillis();
-            Log.d(TAG, "Resetting flow control sequence number");
+            Logger.d(TAG, "Resetting flow control sequence number");
 
             //Add a 200 ms delay to ensure that flow control has reset on the hub.  I'd like
             //to say that this is probably the hackiest thing I've ever done, but we both know
@@ -120,7 +121,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
         {
             try
             {
-                Log.d(TAG, "Flushing final data to printer");
+                Logger.d(TAG, "Flushing final data to printer");
                 seqNo = mFlusher.flush(bb.array(), seqNo);
             }
             catch(HubResponseException e)

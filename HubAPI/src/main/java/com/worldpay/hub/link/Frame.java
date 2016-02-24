@@ -77,10 +77,10 @@ public class Frame
         byte byte1 = (byte) (0x80 | (testLen & 0x7F));
         byte byte2 = (byte) (0x7F & (testLen >> 7));
 
-        Log.d("MePOS", String.format("Byte 1 (LSB): %02X Byte 2 (MSB): %02X", byte1, byte2));
+        Logger.d("MePOS", String.format("Byte 1 (LSB): %02X Byte 2 (MSB): %02X", byte1, byte2));
 
         if(byte1 == 0xAA && byte2 == 0x0F)
-            Log.d("MePOS", "Length calculation is correct");*/
+            Logger.d("MePOS", "Length calculation is correct");*/
 
         //Copy the data
         System.arraycopy(data, 0, buffer, c, data.length);
@@ -88,13 +88,13 @@ public class Frame
         //Append the CRC
         buffer = appendCRC(buffer, Checksum.generate(buffer));
 
-        //Log.d("MePOS", "Raw data follows");
+        //Logger.d("MePOS", "Raw data follows");
         //HexDump.logHexString(buffer, 0, buffer.length);
 
         //Escape the data
         mData = escapeFrame(buffer);
 
-       // Log.d("MePOS", "Unescaped data follows");
+       // Logger.d("MePOS", "Unescaped data follows");
       //  HexDump.logHexString(mData, 0, mData.length);
     }
 
@@ -128,7 +128,7 @@ public class Frame
         if(reqDataLen == data.length)
             return data;
 
-      //  Log.d("MePOS", String.format("Orig data len: %d  Escaped data len: %d", data.length, reqDataLen));
+      //  Logger.d("MePOS", String.format("Orig data len: %d  Escaped data len: %d", data.length, reqDataLen));
 
         byte[] buffer = new byte[reqDataLen];
 
@@ -155,8 +155,8 @@ public class Frame
     public int requiredDataLength(byte[] data)
     {
         //Check each byte for a 0x20 byte or 0x10 byte
-       // Log.d("MePOS", "Calculating required number of bytes to hold escaped data");
-       // Log.d("MePOS", String.format("Original length: %d", data.length));
+       // Logger.d("MePOS", "Calculating required number of bytes to hold escaped data");
+       // Logger.d("MePOS", String.format("Original length: %d", data.length));
         int len = 0;
         for(byte b : data)
         {
@@ -168,7 +168,7 @@ public class Frame
             len++;
         }
 
-      //  Log.d("MePOS", String.format("Escaped length: %d", len));
+      //  Logger.d("MePOS", String.format("Escaped length: %d", len));
         return len;
     }
 

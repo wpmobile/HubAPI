@@ -18,6 +18,8 @@ package com.worldpay.hub.util;
 
 import android.util.Log;
 
+import com.worldpay.hub.Logger;
+
 /**
  * Clone of Android's HexDump class, for use in debugging. Cosmetic changes
  * only.
@@ -37,7 +39,7 @@ public class HexDump {
         String[] lines = log.split("\\n");
         for(String l : lines)
         {
-            Log.d("MePOS", l);
+            Logger.d("MePOS", l);
         }
     }
 
