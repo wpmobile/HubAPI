@@ -49,8 +49,8 @@ public class ResponseParser
         //Its important that this method is not initialised when called, state must be
         //maintained between calls.
 
-     //   Log.d("MePOS", "Raw data follows");
-     //   Log.d("MePOS", HexDump.dumpHexString(data, 0, data.length));
+     //   Logger.d("MePOS", "Raw data follows");
+     //   Logger.d("MePOS", HexDump.dumpHexString(data, 0, data.length));
         byte[] unescapedData = unescape(data);
 
         Log.i("MePOS", "Unescaped response data follows");

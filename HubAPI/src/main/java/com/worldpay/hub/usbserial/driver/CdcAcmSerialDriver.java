@@ -37,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.usbserial.util.HexDump;
 
 /**
@@ -178,7 +179,7 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
 
                 final int nread = buf.position();
                 if (nread > 0) {
-                  Log.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
+                  Logger.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
                   return nread;
                 } else {
                   return 0;
@@ -205,7 +206,7 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
                     return 0;
                 }
                 System.arraycopy(mReadBuffer, 0, dest, 0, numBytesRead);
-                Log.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
+                Logger.d(TAG, HexDump.dumpHexString(dest, 0, Math.min(32, dest.length)));
             }
             return numBytesRead;
         }
@@ -239,7 +240,7 @@ public class CdcAcmSerialDriver implements UsbSerialDriver {
                             + " bytes at offset " + offset + " length=" + src.length);
                 }
 
-                Log.d(TAG, "Wrote amt=" + amtWritten + " attempted=" + writeLength);
+                Logger.d(TAG, "Wrote amt=" + amtWritten + " attempted=" + writeLength);
                 offset += amtWritten;
             }
             return offset;

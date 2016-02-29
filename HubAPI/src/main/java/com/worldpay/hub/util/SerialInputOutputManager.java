@@ -23,6 +23,7 @@ package com.worldpay.hub.util;
 
 import android.util.Log;
 
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 
 import java.io.IOException;
@@ -157,7 +158,7 @@ public class SerialInputOutputManager implements Runnable {
         // Handle incoming data.
         int len = mDriver.read(mReadBuffer.array(), READ_WAIT_MILLIS);
         if (len > 0) {
-            if (DEBUG) Log.d(TAG, "Read data len=" + len);
+            if (DEBUG) Logger.d(TAG, "Read data len=" + len);
             final Listener listener = getListener();
             if (listener != null) {
                 final byte[] data = new byte[len];
@@ -180,7 +181,7 @@ public class SerialInputOutputManager implements Runnable {
         }
         if (outBuff != null) {
             if (DEBUG) {
-                Log.d(TAG, "Writing data len=" + len);
+                Logger.d(TAG, "Writing data len=" + len);
             }
             mDriver.write(outBuff, READ_WAIT_MILLIS);
         }

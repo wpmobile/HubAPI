@@ -28,6 +28,8 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.util.Log;
 
+import com.worldpay.hub.Logger;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -130,9 +132,9 @@ public class Cp21xxSerialDriver implements UsbSerialDriver {
                 for (int i = 0; i < mDevice.getInterfaceCount(); i++) {
                     UsbInterface usbIface = mDevice.getInterface(i);
                     if (mConnection.claimInterface(usbIface, true)) {
-                        Log.d(TAG, "claimInterface " + i + " SUCCESS");
+                        Logger.d(TAG, "claimInterface " + i + " SUCCESS");
                     } else {
-                        Log.d(TAG, "claimInterface " + i + " FAIL");
+                        Logger.d(TAG, "claimInterface " + i + " FAIL");
                     }
                 }
 
@@ -224,7 +226,7 @@ public class Cp21xxSerialDriver implements UsbSerialDriver {
                             + " bytes at offset " + offset + " length=" + src.length);
                 }
 
-                Log.d(TAG, "Wrote amt=" + amtWritten + " attempted=" + writeLength);
+                Logger.d(TAG, "Wrote amt=" + amtWritten + " attempted=" + writeLength);
                 offset += amtWritten;
             }
             return offset;

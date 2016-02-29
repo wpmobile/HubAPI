@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.util.Log;
 import android.util.Printer;
 
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.MePOS.printer.commands.RasterBitmap;
 import com.worldpay.hub.MePOS.printer.commands.SetCharacterSet;
 import com.worldpay.hub.PrinterCommand;
@@ -322,8 +323,8 @@ public class Factory implements PrinterFactory
 */
         int dataLength  = rowLength * pixelHeight;
         byte[] printData = new byte[dataLength];
-        Log.d(TAG, String.format("Getting image data from offset %04X, reading %d bytes", offset, dataLength));
-        Log.d(TAG, String.format("Reading %d rows of %d bytes", pixelHeight, rowLength));
+        Logger.d(TAG, String.format("Getting image data from offset %04X, reading %d bytes", offset, dataLength));
+        Logger.d(TAG, String.format("Reading %d rows of %d bytes", pixelHeight, rowLength));
         System.arraycopy(picture, offset, printData, 0, dataLength);
         return new RasterBitmap(printData);
     }
@@ -356,12 +357,12 @@ public class Factory implements PrinterFactory
         int rowLength = ((pixelWidth + 31) / 32) * 4; //https://en.wikipedia.org/wiki/BMP_file_format#Pixel_storage
         if (rowLength > 36)
         {
-            Log.d(TAG, "Long row length, printing in HD mode");
+            Logger.d(TAG, "Long row length, printing in HD mode");
             printHDRasterImage(rowLength, pixelHeight, offset, picture, queue);
         }
         else
         {
-            Log.d(TAG, "Short row length, printing in SD mode");
+            Logger.d(TAG, "Short row length, printing in SD mode");
             printSDRasterImage(rowLength, pixelHeight, offset, picture, queue);
         }
     }
@@ -385,7 +386,7 @@ public class Factory implements PrinterFactory
         // This is much more complex than low density, as three rows are sent together.  You send the first bytes of each row (rotated)
         // then the second byte of each row, rather than the top row first... hmm.
 
-        //Log.d(TAG, String.format("Row Length: %d Slice Length: %d Slice Count: %d", rowLength, sliceLength, sliceCount));
+        //Logger.d(TAG, String.format("Row Length: %d Slice Length: %d Slice Count: %d", rowLength, sliceLength, sliceCount));
         for(int i=1; i <= sliceCount; i++)
         {
             //Create a slice
@@ -399,7 +400,7 @@ public class Factory implements PrinterFactory
                 sliceStart = offset;
                 thisSliceLength = sliceStart + sliceLength - offset - 1;
             }
-            //Log.d(TAG, String.format("Slice start 0x%04X", sliceStart));
+            //Logger.d(TAG, String.format("Slice start 0x%04X", sliceStart));
             byte[] slice = new byte[rowLength * 24];
             //For each byte in the slice
             int col = 1;
@@ -409,18 +410,18 @@ public class Factory implements PrinterFactory
        /*     if(nextByte >= picture.length)
             {
                 //We don't have image data for all of this slice.  Start with the final row
-                Log.d(TAG, "Slice is shorter than the remaining image.");
+                Logger.d(TAG, "Slice is shorter than the remaining image.");
                 nextByte = picture.length - rowLength - 1;
             }*/
 
-            //Log.d(TAG, String.format("Starting first column at %04X col %d", nextByte, col));
+            //Logger.d(TAG, String.format("Starting first column at %04X col %d", nextByte, col));
             int bit = 7;
             for (int b = 0; b < thisSliceLength; b++)
             {
                 //Get each of the 8 bytes needed to provide bits into this byte
                 for (int box = 0;  box < 8; box++)
                 {
-                    //Log.d(TAG, String.format("Reading byte %04X", nextByte));
+                    //Logger.d(TAG, String.format("Reading byte %04X", nextByte));
                     sourceByte = picture[nextByte];
                     if ((sourceByte & masks[7 - bit]) == 0)
                     {
@@ -442,7 +443,7 @@ public class Factory implements PrinterFactory
 
                     //Move onto the next column.
                     nextByte = sliceStart + thisSliceLength - rowLength + col;
-                    //Log.d(TAG, String.format("Starting new column at %04X col %d", nextByte, col));
+                    //Logger.d(TAG, String.format("Starting new column at %04X col %d", nextByte, col));
 
                     if(nextByte >= picture.length || nextByte <= offset)
                     {
@@ -452,7 +453,7 @@ public class Factory implements PrinterFactory
                     }
                 }
             }
-            //Log.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
+            //Logger.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
             queue.add(new RasterBitmap(slice, RasterBitmap.MODE_HIGH));
         }
     }
@@ -471,12 +472,12 @@ public class Factory implements PrinterFactory
         int sliceStart = offset;
         int actual = 0;
         byte[] masks = new byte[] {(byte)0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
-        //  Log.d(TAG, String.format("Row Length: %d Slice Length: %d Slice Count: %d", rowLength, sliceLength, sliceCount));
+        //  Logger.d(TAG, String.format("Row Length: %d Slice Length: %d Slice Count: %d", rowLength, sliceLength, sliceCount));
         for(int i=sliceCount - 1; i > 0; i--)
         {
             //Create a slice
             sliceStart = (sliceLength * i) + offset;
-            //Log.d(TAG, String.format("Slice start 0x%04X", sliceStart));
+            //Logger.d(TAG, String.format("Slice start 0x%04X", sliceStart));
             byte[] slice = new byte[sliceLength];
             actual = 0;
             for(int col = 0; col < rowLength; col++)
@@ -487,10 +488,10 @@ public class Factory implements PrinterFactory
                 {
                     /*if(col == 0)
                     {
-                        Log.d(TAG, String.format("Next Byte at: %04X Value: %02X", nextByte, picture[nextByte]));
+                        Logger.d(TAG, String.format("Next Byte at: %04X Value: %02X", nextByte, picture[nextByte]));
                     }*/
-                    //Log.d(TAG, String.format("Adding byte for col: %d box: %d index: %d", col, box, (col * 8) + box));
-                    //Log.d(TAG, String.format("Reading byte 0x%04X", nextByte));
+                    //Logger.d(TAG, String.format("Adding byte for col: %d box: %d index: %d", col, box, (col * 8) + box));
+                    //Logger.d(TAG, String.format("Reading byte 0x%04X", nextByte));
 
                     //Add a 90 degree rotation
                     // slice[(col * 8) + box] = (byte)~(picture[nextByte]);
@@ -543,7 +544,7 @@ public class Factory implements PrinterFactory
                 }
             }
 
-            Log.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
+            Logger.d(TAG, String.format("Expected: %d Actual: %d", 8 * rowLength, actual));
             queue.add(new RasterBitmap(slice));
         }
     }

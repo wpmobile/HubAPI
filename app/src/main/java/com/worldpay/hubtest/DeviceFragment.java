@@ -34,7 +34,6 @@ import com.worldpay.hub.MePOS.MePOSHub;
 import com.worldpay.hub.MePOS.printer.commands.DownloadBitmap;
 import com.worldpay.hub.MePOS.printer.commands.Justify;
 import com.worldpay.hub.MePOS.printer.commands.PrintBitmap;
-import com.worldpay.hub.MePOS.printer.commands.RasterBitmap;
 import com.worldpay.hub.MePOS.printer.commands.Underline;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
@@ -46,8 +45,6 @@ import com.worldpay.hub.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
