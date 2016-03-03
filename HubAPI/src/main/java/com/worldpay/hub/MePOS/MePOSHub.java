@@ -784,7 +784,10 @@ public class MePOSHub implements Hub, PrinterFlusher
             //Deserialise the response
             ResponseParser parser = new ResponseParser();
             env = parser.process(response);
-            Logger.d("MePOS", String.format("Tag id : %x", env!=null?env.getTag():" envelope is null"));
+            if(env!=null) {
+                Logger.d("MePOS", String.format("Tag id : %x", env.getTag()));
+            }
+            Logger.d("MePOS", String.format("Tag id : %x", "envelop is null"));
         }
         catch(Exception e)
         {
