@@ -784,7 +784,7 @@ public class MePOSHub implements Hub, PrinterFlusher
             //Deserialise the response
             ResponseParser parser = new ResponseParser();
             env = parser.process(response);
-            Logger.d("MePOS", String.format("Tag id : %x", env.getTag()));
+            Logger.d("MePOS", String.format("Tag id : %x", env!=null?env.getTag():" envelope is null"));
         }
         catch(Exception e)
         {
@@ -793,7 +793,7 @@ public class MePOSHub implements Hub, PrinterFlusher
             Log.i("MePOS", HexDump.dumpHexString(response, 0, response.length));
 
             e.printStackTrace();
-            //throw new MePOSResponseException("Cannot deserialise command", e);
+            throw new HubResponseException("Cannot deserialise command", e);
         }
         return env;
     }
