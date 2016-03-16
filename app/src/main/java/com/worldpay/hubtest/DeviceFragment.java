@@ -305,13 +305,13 @@ public class DeviceFragment extends Fragment
                         //Then we send part one of the firmware
                         //Similarly, the buffer address here looks like it will be the same for all
                         //firmware updates
-                        is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_1);
+                        is = getResources().openRawResource(R.raw.mepos_b2_2_6_f);
                         updater.sendFirmware(is, is.available(), 0x00);
-
+/*
                         //Then we send part two of the firmware and code
                         is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_2);
                         //The offset here is 10000 because that is the length in bytes of part 1.
-                        updater.sendFirmware(is, is.available(), 0x10000);
+                        updater.sendFirmware(is, is.available(), 0x10000);*/
 
                         //Commit the firmware, and return the board to MePOS functionality
                         updater.commitFirmware();
