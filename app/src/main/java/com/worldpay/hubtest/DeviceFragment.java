@@ -29,6 +29,7 @@ import android.widget.TextView;
 import com.ftdi.j2xx.D2xxManager;
 import com.ftdi.j2xx.FT_Device;
 import com.worldpay.hub.HubResponseException;
+import com.worldpay.hub.Logger;
 import com.worldpay.hub.MePOS.FirmwareUpdate;
 import com.worldpay.hub.MePOS.MePOSHub;
 import com.worldpay.hub.MePOS.printer.commands.DownloadBitmap;
@@ -75,6 +76,8 @@ public class DeviceFragment extends Fragment
     private Button mHDRasterPrint;
     private Button mOTAMode;
     private Button mStartUpdate;
+    private Button mUpdateLights;
+    private Button mLightsOff;
 
     private RadioButton mSelectUSB;
     private RadioButton mSelectBT;
@@ -240,6 +243,62 @@ public class DeviceFragment extends Fragment
             }
         });
 
+        mUpdateLights = (Button) getActivity().findViewById(R.id.lightsOn);
+        mUpdateLights.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                try
+                {
+                    //Cast as a MePOS Hub
+                    MePOSHub mepos = (MePOSHub) mListener.getHub();
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_NETWORK, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PED, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_POWER, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PRINTER, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_TABLET, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB1, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB2, mepos.COLOR_GREEN, mepos.STATE_ON);
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        mLightsOff = (Button) getActivity().findViewById(R.id.lightsOff);
+        mLightsOff.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View arg0)
+            {
+                try
+                {
+                    //Cast as a MePOS Hub
+                    MePOSHub mepos = (MePOSHub) mListener.getHub();
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_NETWORK, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PED, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_POWER, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PRINTER, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_TABLET, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB1, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB2, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+
         mOTAMode = (Button) getActivity().findViewById(R.id.otamode);
         mOTAMode.setOnClickListener(new View.OnClickListener()
         {
@@ -268,6 +327,8 @@ public class DeviceFragment extends Fragment
             {
                 try
                 {
+
+                    Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS_EXTENDED);
                     Log.d(TAG, "Getting D2XXManager");
                     ftD2xx = D2xxManager.getInstance(getActivity().getApplicationContext());
 
@@ -305,13 +366,13 @@ public class DeviceFragment extends Fragment
                         //Then we send part one of the firmware
                         //Similarly, the buffer address here looks like it will be the same for all
                         //firmware updates
-                        is = getResources().openRawResource(R.raw.mepos_b2_2_6_f);
+                        is = getResources().openRawResource(R.raw.mepos_b2_2_8_f_part_1);
                         updater.sendFirmware(is, is.available(), 0x00);
-/*
+
                         //Then we send part two of the firmware and code
-                        is = getResources().openRawResource(R.raw.mepos_b2_2_0_a_part_2);
+                        is = getResources().openRawResource(R.raw.mepos_b2_2_8_f_part_2);
                         //The offset here is 10000 because that is the length in bytes of part 1.
-                        updater.sendFirmware(is, is.available(), 0x10000);*/
+                        updater.sendFirmware(is, is.available(), 0x10000);
 
                         //Commit the firmware, and return the board to MePOS functionality
                         updater.commitFirmware();
@@ -684,8 +745,8 @@ public class DeviceFragment extends Fragment
             @Override
             public void onClick(View arg0)
             {
-                    if(mDeviceType.getText().toString().equals("MePOS"))
-                        mListener.probe((MePOSHub) mListener.getHub());
+                if (mDeviceType.getText().toString().equals("MePOS"))
+                    mListener.probe((MePOSHub) mListener.getHub());
 
             }
         });

@@ -184,6 +184,7 @@ public class FirmwareUpdate
             mHub.write(data, data.length);
 
             //Wait for a prompt response before continuing
+
             if(expected != NUL && awaitAcknowlegement(expected) != expected)
             {
                 throw new HubResponseException("Could not send hub firmware command");
@@ -206,7 +207,7 @@ public class FirmwareUpdate
             data = code.getBytes("ISO-8859-1");
             Logger.d(TAG, String.format("Writing %d bytes", data.length));
             String writeData = HexDump.dumpHexString(data, 0, data.length);
-            Logger.d(TAG, writeData);
+            Logger.d(TAG, "\n" + writeData);
             mHub.write(data, data.length);
         } catch (UnsupportedEncodingException e)
         {
@@ -377,7 +378,7 @@ public class FirmwareUpdate
     {
         //Logger.d(TAG, String.format("Writing %d bytes", length));
         String writeData = HexDump.dumpHexString(data, 0, data.length);
-        Logger.d(TAG, writeData);
+        Logger.d(TAG, "\n" + writeData);
         mHub.write(data, length);
     }
 

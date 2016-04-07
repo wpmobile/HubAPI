@@ -25,7 +25,7 @@ public class Logger {
 
     public static void d(String tag, String msg) {
         if (debugLogLevel != LogLevel.NO_LOGS && debugLogLevel == LogLevel.DEBUG_LOGS_EXTENDED) {
-            Logger.d(tag, msg);
+            Log.d(tag, msg);
         }
     }
 

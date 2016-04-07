@@ -72,7 +72,7 @@ public class mpopHub implements Hub
     {
         //PrinterQueue q = new PrinterQueue();
         //q.add(new OpenDrawer());
-        sendCommands(new byte[] { 0x07 }, mPort);
+        sendCommands(new byte[]{0x07}, mPort);
     }
 
     @Override
@@ -89,6 +89,12 @@ public class mpopHub implements Hub
 
     @Override
     public void setMode(int mode) throws HubResponseException, IOException
+    {
+        //TODO;
+    }
+
+    @Override
+    public void setDiagnosticLight(int light, int colour, int state) throws HubResponseException, IOException
     {
         //TODO;
     }

@@ -65,8 +65,8 @@ public class MePOSHub implements Hub, PrinterFlusher
     protected final static int MAX_FAILURES = 1;
 
     //Diagnostic lights constants
-    public static final int COLOR_RED      = 1;
-    public static final int COLOR_GREEN    = 2;
+    public static final int COLOR_RED      = 2;
+    public static final int COLOR_GREEN    = 1;
     public static final int COLOR_BLUE     = 4;
 
     //The power values are the values of the green light in the MePOS documentation,
@@ -386,6 +386,7 @@ public class MePOSHub implements Hub, PrinterFlusher
         }
     }
 
+    @Override
     public void setDiagnosticLight(int light, int colour, int state) throws HubResponseException, IOException
     {
         SetIO io = new SetIO();

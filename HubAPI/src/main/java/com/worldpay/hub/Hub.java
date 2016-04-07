@@ -16,4 +16,5 @@ public interface Hub
     public void setMode(int mode) throws HubResponseException, IOException;
     public void updateFirmware(InputStream firmware, int length) throws HubResponseException, IOException;
     public PrinterFactory getPrinter();
+    public void setDiagnosticLight(int light, int colour, int state) throws HubResponseException, IOException;
 }

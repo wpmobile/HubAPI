@@ -35,7 +35,7 @@ public class HexDump {
         byte[] line = new byte[16];
         int lineIndex = 0;
 
-        result.append("\n0x");
+        result.append(".\n0x");
         result.append(toHexString(offset));
 
         for (int i = offset; i < offset + length; i++) {

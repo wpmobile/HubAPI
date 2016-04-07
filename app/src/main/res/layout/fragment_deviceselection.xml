@@ -136,4 +136,18 @@
         android:text="Upload Firmware"
         android:id="@+id/firmware"
         android:layout_below="@+id/rasterHD"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lights On"
+        android:id="@+id/lightsOn"
+        android:layout_below="@+id/firmware"/>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lights Off"
+        android:id="@+id/lightsOff"
+        android:layout_below="@+id/firmware"
+        android:layout_toRightOf="@+id/lightsOn"/>
 </RelativeLayout>
