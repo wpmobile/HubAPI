@@ -47,6 +47,7 @@ public class MePOSHub implements Hub, PrinterFlusher
     protected final static String TAG = "MePOS";
     protected UsbSerialPort mPort;
     protected UsbManager mManager;
+    protected UsbDeviceConnection mUsbConn;
     protected boolean mFlowControl = false;
 
     protected final static byte HUB_ADDRESS = 0x18;
@@ -92,6 +93,12 @@ public class MePOSHub implements Hub, PrinterFlusher
         mPort = port;
         mManager = manager;
         mFlowControl = true;
+
+        mUsbConn = null;
+        if(port != null)
+        {
+            mUsbConn = mManager.openDevice(mPort.getDriver().getDevice());
+        }
     }
 
     public MePOSHub(UsbSerialPort port, UsbManager manager, boolean flowcontrol)
@@ -99,6 +106,52 @@ public class MePOSHub implements Hub, PrinterFlusher
         mPort = port;
         mManager = manager;
         mFlowControl = flowcontrol;
+
+        mUsbConn = null;
+    }
+
+    public void open() throws IOException
+    {
+        if(mPort != null)
+        {
+            mUsbConn = mManager.openDevice(mPort.getDriver().getDevice());
+            mPort.open(mUsbConn);
+
+            //Clear the response buffer
+            clear();
+        }
+    }
+
+    /***
+     * Clears the response buffer on the board
+     */
+    public void clear()
+    {
+        Log.d(TAG, "Clearing response buffer");
+        int bytesRead = 1;
+        byte[] readBuffer = new byte[MAX_FRAMESIZE];
+
+        while(bytesRead > 0)
+        {
+            try
+            {
+                bytesRead = mPort.read(readBuffer, 1000);
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+
+            Log.d(TAG, String.format("Cleared %d bytes from read buffer", bytesRead));
+        }
+    }
+
+    /**
+     * Closes the underlying USB connection, useful when destroying the object
+     */
+    public void close() throws IOException
+    {
+        mPort.close();
+        mUsbConn.close();
     }
 
     @Override
@@ -366,8 +419,8 @@ public class MePOSHub implements Hub, PrinterFlusher
 
     /***
      * This is designed as a short cut to quickly turn the light off in 1 line.
-     * @param light
-     * @param state
+     * @param light The light to change the state of
+     * @param state The state to set the light to (on or off)
      * @throws HubResponseException
      * @throws IOException
      */
@@ -452,7 +505,7 @@ public class MePOSHub implements Hub, PrinterFlusher
                         }
                     }
 
-                    if (responses == null || responses.size() == 0 || !found)
+                    if (responses.size() == 0 || !found)
                     {
                         failureCount++;
                         Logger.d(TAG, "Attempt failed, will retry");
@@ -639,11 +692,7 @@ public class MePOSHub implements Hub, PrinterFlusher
     {
         ArrayList<Envelope> responses = new ArrayList<Envelope>();
 
-        UsbDeviceConnection connection = mManager.openDevice(mPort.getDriver().getDevice());
-
-        //Logger.d(TAG, "Link established");
-
-        if (connection == null) {
+        if (mUsbConn == null) {
             IOException e = new IOException();
             Log.e(TAG, "Opening device failed", e);
             throw e;
@@ -655,16 +704,6 @@ public class MePOSHub implements Hub, PrinterFlusher
             Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
             Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
 
-        Logger.d(TAG, "Opening port");
-        try
-        {
-            mPort.open(connection);
-        }
-        catch(IOException io)
-        {
-            Logger.d(TAG, "Port open failed");
-            throw io;
-        }
         //For robustness, do some automatic retries
         int failureCount = 0;
         boolean writeSuccess = false;
@@ -682,7 +721,6 @@ public class MePOSHub implements Hub, PrinterFlusher
                 failureCount++;
                 if (failureCount > 5)
                 {
-                    mPort.close();
                     throw new IOException(e);
                 }
                 //Wait to allow time for the line to clear
@@ -703,14 +741,6 @@ public class MePOSHub implements Hub, PrinterFlusher
         {
             Logger.d(TAG, "Calling response read");
             responses = readResponses(timeout);
-        }
-
-        try
-        {
-            mPort.close();
-        } catch (IOException e2)
-        {
-            // Ignore.
         }
 
         return responses;
@@ -750,10 +780,10 @@ public class MePOSHub implements Hub, PrinterFlusher
 
             if(bytesRead > 0)
             {
-                Logger.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
+/*                Logger.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
                 Logger.d(TAG, "********************************************");
                 Logger.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Logger.d(TAG, "********************************************");
+                Logger.d(TAG, "********************************************");*/
                 Logger.d(TAG, String.format("Read %d bytes", bytesRead));
 
                 //Just take the response bytes
@@ -788,12 +818,12 @@ public class MePOSHub implements Hub, PrinterFlusher
             if(env!=null) {
                 Logger.d("MePOS", String.format("Tag id : %x", env.getTag()));
             }
-            Logger.d("MePOS", String.format("Tag id : %x", "envelop is null"));
         }
         catch(Exception e)
         {
             Log.i("MePOS", "Fatal error");
             Log.i("MePOS", "Could not deserialise response");
+            Log.i("MePOS", e.getMessage());
             Log.i("MePOS", HexDump.dumpHexString(response, 0, response.length));
 
             e.printStackTrace();

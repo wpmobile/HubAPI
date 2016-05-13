@@ -253,13 +253,13 @@ public class DeviceFragment extends Fragment
                 {
                     //Cast as a MePOS Hub
                     MePOSHub mepos = (MePOSHub) mListener.getHub();
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_NETWORK, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PED, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_POWER, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PRINTER, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_TABLET, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB1, mepos.COLOR_GREEN, mepos.STATE_ON);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB2, mepos.COLOR_GREEN, mepos.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_NETWORK, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_PED, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_POWER, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_PRINTER, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_TABLET, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_USB1, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_USB2, MePOSHub.COLOR_GREEN, MePOSHub.STATE_ON);
                 } catch (HubResponseException e)
                 {
                     e.printStackTrace();
@@ -278,15 +278,18 @@ public class DeviceFragment extends Fragment
             {
                 try
                 {
+                    Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS_EXTENDED);
                     //Cast as a MePOS Hub
                     MePOSHub mepos = (MePOSHub) mListener.getHub();
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_NETWORK, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PED, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_POWER, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_PRINTER, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_TABLET, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB1, mepos.COLOR_GREEN, mepos.STATE_OFF);
-                    mepos.setDiagnosticLight(mepos.DIAGNOSTIC_LIGHT_USB2, mepos.COLOR_GREEN, mepos.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_NETWORK, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_PED, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_POWER, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_PRINTER, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_TABLET, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_USB1, MePOSHub.STATE_OFF);
+                    mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_USB2, MePOSHub.STATE_OFF);
+
+
                 } catch (HubResponseException e)
                 {
                     e.printStackTrace();
@@ -546,7 +549,7 @@ public class DeviceFragment extends Fragment
                 if(mListener.getHub() == null)
                     return;
 
-                Log.d("MePOS", String.format("Starting print test"));
+                Log.d("MePOS", "Starting print test");
                 PrinterFactory factory = mListener.getHub().getPrinter();
 
 
@@ -625,9 +628,9 @@ public class DeviceFragment extends Fragment
 
                 try
                 {
-                    Log.d("MePOS", String.format("Printing now"));
-                    mListener.getHub().print(imageQueue);
-                   // mListener.getHub().print(queue);
+                    Log.d("MePOS", "Printing now");
+                    //mListener.getHub().print(imageQueue);
+                    mListener.getHub().print(queue);
                 } catch (HubResponseException e)
                 {
                     Log.d("MePOS", e.getMessage());
@@ -637,7 +640,7 @@ public class DeviceFragment extends Fragment
                     Log.d("MePOS", e.getMessage());
                     e.printStackTrace();
                 }
-                Log.d("MePOS", String.format("Print finished"));
+                Log.d("MePOS", "Print finished");
             }
 
         });
@@ -734,7 +737,7 @@ public class DeviceFragment extends Fragment
                         e.printStackTrace();
                     }
                 }
-                Log.d("MePOS", String.format("Print finished"));
+                Log.d("MePOS", "Print finished");
             }
 
         });
@@ -773,7 +776,7 @@ public class DeviceFragment extends Fragment
                 {
                     final List<UsbSerialPort> ports = driver.getPorts();
                     Log.d(TAG, String.format("+ %s: %s port%s",
-                            driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
+                            driver, ports.size(), ports.size() == 1 ? "" : "s"));
                     result.addAll(ports);
 
                     Log.d(TAG, String.format("Adding device %04X:%04X", driver.getDevice().getVendorId(), driver.getDevice().getProductId()));
@@ -835,6 +838,15 @@ public class DeviceFragment extends Fragment
                         if (device != null)
                         {
                             // call method to set up device communication
+                            MePOSHub hub = (MePOSHub)mListener.getHub();
+                            try
+                            {
+                                hub.open();
+                            } catch (IOException e)
+                            {
+                                e.printStackTrace();
+                                Log.d(TAG, "Cannot open USB port");
+                            }
                         }
                     } else
                     {
@@ -842,6 +854,6 @@ public class DeviceFragment extends Fragment
                     }
                 }
             }
-        };
+        }
     };
 }
