@@ -22,7 +22,7 @@ android {
         minSdkVersion 15
         targetSdkVersion 21
         versionCode 1
-        versionName "1.0.26"
+        versionName "1.0.27"
     }
     buildTypes {
         release {
@@ -39,10 +39,7 @@ repositories{
 }
 
 dependencies {
-    compile project(":miuralibrary")
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:21.0.3'
-    compile files('libs/StarIOPort3.1.jar')
-    compile files('libs/StarIO_Extension.jar')
     compile files('libs/D2xx.jar')
 }

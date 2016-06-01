@@ -3,9 +3,6 @@ package com.worldpay.hub;
 import com.worldpay.hub.MePOS.printer.commands.PrintText;
 import com.worldpay.hub.MePOS.printer.commands.Raster;
 import com.worldpay.hub.MePOS.printer.commands.RasterBitmap;
-import com.worldpay.hub.mpop.printer.commands.CutPaper;
-import com.worldpay.hub.mpop.printer.commands.FeedPaper;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayDeque;

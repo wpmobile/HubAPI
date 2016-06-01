@@ -39,7 +39,6 @@ import com.worldpay.hub.MePOS.printer.commands.Underline;
 import com.worldpay.hub.PrinterCommandNotImplementedException;
 import com.worldpay.hub.PrinterFactory;
 import com.worldpay.hub.PrinterQueue;
-import com.worldpay.hub.mpop.mpopHub;
 import com.worldpay.hub.usbserial.driver.UsbSerialDriver;
 import com.worldpay.hub.usbserial.driver.UsbSerialPort;
 import com.worldpay.hub.usbserial.driver.UsbSerialProber;
@@ -190,17 +189,6 @@ public class DeviceFragment extends Fragment
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                                        int arg2, long arg3)
             {
-                try
-                {
-                    mListener.setHub(new mpopHub("BT:" + mBTAdapter.getItem(arg2), getActivity()));
-                    mDeviceType.setText("BT Devices");
-                    mDeviceName.setText(mBTAdapter.getItem(arg2));
-                } catch (HubResponseException e)
-                {
-                    mDeviceType.setText("Error");
-                    mDeviceName.setText("");
-                    e.printStackTrace();
-                }
             }
 
             @Override
