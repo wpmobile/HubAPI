@@ -11,6 +11,7 @@ public class GetClock extends Command
     {
         mCommand = 'k';
         mDate = null;
+        mRequiresResponse = true;
     }
 
     @Override

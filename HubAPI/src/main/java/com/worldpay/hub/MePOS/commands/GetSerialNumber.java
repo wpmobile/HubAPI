@@ -11,6 +11,7 @@ public class GetSerialNumber extends Command
     {
         mCommand = 'y';
         mCommandData = new byte[]{ (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF };
+        mRequiresResponse = true;
     }
 
     public void setSerialNumber(int sn)

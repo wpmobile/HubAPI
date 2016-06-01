@@ -48,7 +48,7 @@ public class MePOSHub implements Hub, PrinterFlusher
     protected UsbSerialPort mPort;
     protected UsbManager mManager;
     protected UsbDeviceConnection mUsbConn;
-    protected boolean mFlowControl = false;
+    protected boolean mFlowControl = true;
 
     protected final static byte HUB_ADDRESS = 0x18;
     protected final static byte PRINTER_ADDRESS = 0x12;
@@ -93,6 +93,7 @@ public class MePOSHub implements Hub, PrinterFlusher
         mPort = port;
         mManager = manager;
         mFlowControl = true;
+        Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS);
 
         mUsbConn = null;
         if(port != null)
@@ -127,21 +128,12 @@ public class MePOSHub implements Hub, PrinterFlusher
      */
     public void clear()
     {
-        Log.d(TAG, "Clearing response buffer");
-        int bytesRead = 1;
-        byte[] readBuffer = new byte[MAX_FRAMESIZE];
-
-        while(bytesRead > 0)
+        try
         {
-            try
-            {
-                bytesRead = mPort.read(readBuffer, 1000);
-            } catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-
-            Log.d(TAG, String.format("Cleared %d bytes from read buffer", bytesRead));
+            mPort.purgeHwBuffers(true, true);
+        } catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 
@@ -698,11 +690,14 @@ public class MePOSHub implements Hub, PrinterFlusher
             throw e;
         }
 
+        //Clear any read or write buffer ready for the new command.  Its too late!
+        clear();
+
         Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target, sequenceNumber));
 
         byte[] dataToSend = frames[0].getFrameData();
-            Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-            Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        //    Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
+        //    Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
 
         //For robustness, do some automatic retries
         int failureCount = 0;
@@ -737,11 +732,14 @@ public class MePOSHub implements Hub, PrinterFlusher
 
         Logger.d(TAG, String.format("Written %d bytes", writeLen));
 
-        if(mFlowControl)
+        //if(mFlowControl)
+        //{
+        if(c.requiresResponse())
         {
             Logger.d(TAG, "Calling response read");
             responses = readResponses(timeout);
         }
+        //}
 
         return responses;
     }
@@ -757,6 +755,8 @@ public class MePOSHub implements Hub, PrinterFlusher
     protected ArrayList<Envelope> readResponses(int timeout) throws IOException, HubResponseException
     {
         ArrayList<Envelope> responses = new ArrayList<Envelope>();
+        ResponseParser parser = new ResponseParser();
+
         byte[] readBuffer = new byte[MAX_FRAMESIZE];
         int bytesRead = 1;
         boolean waitingForResponse = true;
@@ -789,46 +789,26 @@ public class MePOSHub implements Hub, PrinterFlusher
                 //Just take the response bytes
                 byte[] responseBytes = new byte[bytesRead];
                 System.arraycopy(readBuffer, 0, responseBytes, 0, bytesRead);
-                //Deserialise response into a command
-                Envelope e = deserialise(responseBytes);
-                if(e != null)
+
+                try
                 {
-                    responses.add(e);
+                    //Deserialise the response
+                    responses = parser.process(responseBytes);
+                }
+                catch(Exception e)
+                {
+                    parser.clear();
+                    Log.i("MePOS", "Fatal error");
+                    Log.i("MePOS", "Could not deserialise response");
+                    Log.i("MePOS", e.getMessage());
+                    Log.i("MePOS", HexDump.dumpHexString(responseBytes, 0, responseBytes.length));
+
+                    e.printStackTrace();
+                    throw new HubResponseException("Cannot deserialise command", e);
                 }
             }
         }
 
         return responses;
-    }
-
-    /**
-     * Converts a byte[] from the MePOS hub into a usable Command object
-     * @param response the raw data
-     * @return The completed Command object
-     * @throws HubResponseException
-     */
-    protected Envelope deserialise(byte[] response) throws HubResponseException
-    {
-        Envelope env = null;
-        try
-        {
-            //Deserialise the response
-            ResponseParser parser = new ResponseParser();
-            env = parser.process(response);
-            if(env!=null) {
-                Logger.d("MePOS", String.format("Tag id : %x", env.getTag()));
-            }
-        }
-        catch(Exception e)
-        {
-            Log.i("MePOS", "Fatal error");
-            Log.i("MePOS", "Could not deserialise response");
-            Log.i("MePOS", e.getMessage());
-            Log.i("MePOS", HexDump.dumpHexString(response, 0, response.length));
-
-            e.printStackTrace();
-            throw new HubResponseException("Cannot deserialise command", e);
-        }
-        return env;
     }
 }

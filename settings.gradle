@@ -1,1 +1,1 @@
-include ':app', ':HubAPI'
+include ':app', ':miuralibrary', ':HubAPI'

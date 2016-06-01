@@ -33,7 +33,7 @@ public class PassthroughPrinterQueueProcessor implements PrinterQueueProcessor
             {
                 try
                 {
-                    Logger.d(TAG, "Need to add a delay");
+                    //Logger.d(TAG, "Need to add a delay");
                     Thread.sleep(nextCommand.getDelay());
                 } catch (InterruptedException e)
                 {

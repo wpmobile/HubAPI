@@ -7,7 +7,7 @@ import android.util.Log;
  */
 public class Logger {
 
-    private static int debugLogLevel = LogLevel.NO_LOGS;
+    private static int debugLogLevel = LogLevel.DEBUG_LOGS;
 
     public static int getDebugLogLevel() {
         return debugLogLevel;

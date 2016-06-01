@@ -7,6 +7,7 @@ public class GetVersion extends Command
         mCommand = 'v';
         mCommandData = new byte[] { 0x00, 0x00, 0x00, 0x00, /* serial number of the recipient */
                                     0x01, 0x00, 0x00        /* protocol version 1.0.0 */ };
+        mRequiresResponse = true;
     }
 
     public void setSerialNumber(byte[] serial)

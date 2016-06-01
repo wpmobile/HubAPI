@@ -7,11 +7,13 @@ public class Command {
     private final String TAG = "API Command";
     protected char mCommand;
     protected byte[] mCommandData;
+    protected boolean mRequiresResponse;
 
     public Command()
     {
         mCommand = '\0';
         mCommandData = null;
+        mRequiresResponse = false;
     }
 
     public byte[] getCommandData()
@@ -45,6 +47,11 @@ public class Command {
     public void setCommandCode(byte code)
     {
         mCommand = (char)code;
+    }
+
+    public boolean requiresResponse()
+    {
+        return mRequiresResponse;
     }
 
     //Creates an instance of the right command based on the response data
@@ -83,6 +90,9 @@ public class Command {
                 break;
             case 'E':
                 c = new ErrorResponse();
+                break;
+            case 'I':
+                c = new SetIO();
                 break;
             default:
                 c = new Command();

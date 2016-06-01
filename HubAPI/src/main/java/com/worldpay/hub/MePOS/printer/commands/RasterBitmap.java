@@ -55,6 +55,6 @@ public class RasterBitmap extends PrinterCommand
         System.arraycopy(bitmap, 0, mData, 5, bitmap.length);
         mData[mData.length - 1] = 0x0A;
 
-        mDelay = 100;
+        mDelay = 10;
     }
 }

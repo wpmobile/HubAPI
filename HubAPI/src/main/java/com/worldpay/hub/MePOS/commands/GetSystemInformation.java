@@ -11,6 +11,7 @@ public class GetSystemInformation extends Command
     {
         mCommand = 'z';
         mSystemInformation = new SystemInformation();
+        mRequiresResponse = true;
     }
 
     @Override

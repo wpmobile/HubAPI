@@ -68,7 +68,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 }
             }
 
-            //Logger.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
+            Logger.d(TAG, String.format("Serialising command %s", nextCommand.getClass().getCanonicalName()));
             //Logger.d(TAG, String.format("Position offset : %02X", bb.position()));
             bb.put(nextCommand.getData());
             if(nextCommand.getDelay() > 0)
