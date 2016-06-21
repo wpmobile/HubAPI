@@ -41,7 +41,7 @@ public class Logger {
                 case 2:
                     return DEBUG_LOGS_EXTENDED;
                 default:
-                    throw new IndexOutOfBoundsException();
+                    throw new IllegalArgumentException("Argument value does not exist: "+value);
             }
         }
     }
