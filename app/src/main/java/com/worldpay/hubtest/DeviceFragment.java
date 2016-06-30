@@ -25,6 +25,7 @@ import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ftdi.j2xx.D2xxManager;
 import com.ftdi.j2xx.FT_Device;
@@ -77,6 +78,10 @@ public class DeviceFragment extends Fragment
     private Button mStartUpdate;
     private Button mUpdateLights;
     private Button mLightsOff;
+    private Button mUpload1;
+    private Button mUpload2;
+    private Button mUpload3;
+    private Button mPrintLogo;
 
     private RadioButton mSelectUSB;
     private RadioButton mSelectBT;
@@ -138,6 +143,8 @@ public class DeviceFragment extends Fragment
     public void onActivityCreated(Bundle savedInstanceState)
     {
         super.onActivityCreated(savedInstanceState);
+
+        Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS_EXTENDED);
 
         mSelectUSB = (RadioButton) getActivity().findViewById(R.id.usbDeviceSelector);
         mSelectBT = (RadioButton) getActivity().findViewById(R.id.btDeviceSelector);
@@ -266,7 +273,6 @@ public class DeviceFragment extends Fragment
             {
                 try
                 {
-                    Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS_EXTENDED);
                     //Cast as a MePOS Hub
                     MePOSHub mepos = (MePOSHub) mListener.getHub();
                     mepos.setDiagnosticLight(MePOSHub.DIAGNOSTIC_LIGHT_NETWORK, MePOSHub.STATE_OFF);
@@ -456,8 +462,10 @@ public class DeviceFragment extends Fragment
 
                 try
                 {
+                    //Print the merchant logo
                     imageQueue.add(factory.FeedPaper(10))
-                              .add(factory.PrintText("Starting\n"));
+                              .add(factory.PrintText("Starting\n"))
+                              .add(factory.PrintBitmap());
 
                     factory.PrintRasterImage(imageQueue, picture);
 
@@ -730,6 +738,73 @@ public class DeviceFragment extends Fragment
 
         });
 
+
+        mUpload1 = (Button) getActivity().findViewById(R.id.upload1);
+        mUpload1.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                uploadBitmap(R.raw.drwho1);
+            }
+        });
+
+        mUpload2 = (Button) getActivity().findViewById(R.id.upload2);
+        mUpload2.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                uploadBitmap(R.raw.drwho2);
+            }
+        });
+
+        mUpload3 = (Button) getActivity().findViewById(R.id.upload3);
+        mUpload3.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                uploadBitmap(R.raw.drwho3);
+            }
+        });
+
+
+        mPrintLogo = (Button) getActivity().findViewById(R.id.printLogo);
+        mPrintLogo.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if(mListener.getHub() == null)
+                    return;
+
+                PrinterFactory factory = mListener.getHub().getPrinter();
+
+                //MePOS
+                PrinterQueue imageQueue = new PrinterQueue();
+
+                try
+                {
+                    imageQueue.add(factory.PrintBitmap())
+                            .add(factory.FeedPaper(10))
+                            .add(factory.CutPaper(PrinterFactory.CUT_FULL))
+                            .add(factory.FeedPaper(2));
+                    mListener.getHub().print(imageQueue);
+
+                } catch (HubResponseException e)
+                {
+                    e.printStackTrace();
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                } catch (PrinterCommandNotImplementedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         mProbe = (Button) getActivity().findViewById(R.id.probe);
         mProbe.setOnClickListener(new View.OnClickListener()
         {
@@ -743,6 +818,49 @@ public class DeviceFragment extends Fragment
         });
 
         mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, 2000);
+    }
+
+    private void uploadBitmap(int id)
+    {
+        if(mListener.getHub() == null)
+            return;
+
+        PrinterFactory factory = mListener.getHub().getPrinter();
+
+        byte[] picture = new byte[]{};
+        try
+        {
+            InputStream is = getResources().openRawResource(id);
+            picture = new byte[is.available()];
+            int read = is.read(picture);
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        //MePOS
+        PrinterQueue imageQueue = new PrinterQueue();
+
+        try
+        {
+            imageQueue.add(factory.DownloadBitmap(picture))
+                      .add(factory.PrintBitmap())
+                      .add(factory.FeedPaper(10))
+                      .add(factory.CutPaper(PrinterFactory.CUT_FULL))
+                      .add(factory.FeedPaper(2));;
+            mListener.getHub().print(imageQueue);
+            Toast.makeText(getActivity().getApplicationContext(), "Logo uploaded", Toast.LENGTH_LONG).show();
+
+        } catch (HubResponseException e)
+        {
+            e.printStackTrace();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        } catch (PrinterCommandNotImplementedException e)
+        {
+            e.printStackTrace();
+        }
     }
 
 

@@ -58,7 +58,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 try
                 {
                     Logger.d(TAG, "Buffer is full, flushing");
-                    seqNo = mFlusher.flush(bb.array(), seqNo);
+                    seqNo = flush(bb, seqNo);
                     bb.clear();
                 }
                 catch(HubResponseException e)
@@ -76,9 +76,8 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 try
                 {
                     Logger.d(TAG, "Need to add a delay, flushing now");
-                    seqNo = mFlusher.flush(bb.array(), seqNo);
-                }
-                catch(HubResponseException e)
+                    seqNo = flush(bb, seqNo);
+                } catch(HubResponseException e)
                 {
                     //Flush to printer has failed, abort
                     return;
@@ -122,7 +121,7 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
             try
             {
                 Logger.d(TAG, "Flushing final data to printer");
-                seqNo = mFlusher.flush(bb.array(), seqNo);
+                seqNo = flush(bb, seqNo);
             }
             catch(HubResponseException e)
             {
@@ -130,6 +129,21 @@ public class BatchedPrinterQueueProcessor implements PrinterQueueProcessor
                 return;
             }
         }
+    }
+
+    private int flush(ByteBuffer buffer, int seqNo) throws IOException, HubResponseException
+    {
+        if (buffer == null || mFlusher == null)
+        {
+            return -1;
+        }
+        byte sendData[] = new byte[buffer.position()];
+        System.arraycopy(buffer.array(), 0, sendData, 0, buffer.position());
+
+        //Clear the buffer for reuse
+        buffer.clear();
+
+        return mFlusher.flush(sendData, seqNo);
     }
 
     @Override

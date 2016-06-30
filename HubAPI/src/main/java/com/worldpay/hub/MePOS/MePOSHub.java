@@ -93,7 +93,7 @@ public class MePOSHub implements Hub, PrinterFlusher
         mPort = port;
         mManager = manager;
         mFlowControl = true;
-        Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS);
+        //Logger.setDebugLogLevel(Logger.LogLevel.DEBUG_LOGS);
 
         mUsbConn = null;
         if(port != null)
@@ -386,10 +386,10 @@ public class MePOSHub implements Hub, PrinterFlusher
         PrinterQueueProcessor queueProcessor = null;
 
         //BatchedPrinterQueueProcessor implements a strategy of fewer, larger messages with flow control
-        //queueProcessor = new BatchedPrinterQueueProcessor(MAX_DATASIZE);
+        queueProcessor = new BatchedPrinterQueueProcessor(MAX_DATASIZE);
 
         //PassthroughPrinterQueueProcessor implements a strategy of more, smaller messages with no flow control
-        queueProcessor = new PassthroughPrinterQueueProcessor();
+        //queueProcessor = new PassthroughPrinterQueueProcessor();
 
         //The queue processor needs to delegate the actual transmission of data. In this case, back to MePOSHub
         queueProcessor.setPrinterFlusher(this);
@@ -696,8 +696,8 @@ public class MePOSHub implements Hub, PrinterFlusher
         Frame[] frames = Frame.getFrames(new Envelope(c, TABLET_ADDRESS, target, sequenceNumber));
 
         byte[] dataToSend = frames[0].getFrameData();
-        //    Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
-        //    Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
+        Logger.d(TAG, String.format("Writing %d bytes", dataToSend.length));
+        Logger.d(TAG, HexDump.dumpHexString(dataToSend, 0, dataToSend.length));
 
         //For robustness, do some automatic retries
         int failureCount = 0;
@@ -722,7 +722,7 @@ public class MePOSHub implements Hub, PrinterFlusher
                 try
                 {
                     Logger.d(TAG, "Port failure - sleep and retry");
-                    Thread.sleep(250);
+                    Thread.sleep(1000);
                 } catch (InterruptedException ie)
                 {
                     ie.printStackTrace();
@@ -732,14 +732,11 @@ public class MePOSHub implements Hub, PrinterFlusher
 
         Logger.d(TAG, String.format("Written %d bytes", writeLen));
 
-        //if(mFlowControl)
-        //{
-        if(c.requiresResponse())
+        if(c.requiresResponse() || mFlowControl)
         {
             Logger.d(TAG, "Calling response read");
             responses = readResponses(timeout);
         }
-        //}
 
         return responses;
     }
@@ -757,55 +754,64 @@ public class MePOSHub implements Hub, PrinterFlusher
         ArrayList<Envelope> responses = new ArrayList<Envelope>();
         ResponseParser parser = new ResponseParser();
 
-        byte[] readBuffer = new byte[MAX_FRAMESIZE];
         int bytesRead = 1;
         boolean waitingForResponse = true;
         long startTime = System.currentTimeMillis();
 
+        ByteBuffer concatBuffer = ByteBuffer.allocate(MAX_FRAMESIZE);
+
         Logger.d(TAG, "Waiting for response..");
-        while(waitingForResponse  || bytesRead > 0)
+        while(waitingForResponse || bytesRead > 0)
         {
-            bytesRead  = mPort.read(readBuffer, timeout);
-            if(waitingForResponse && bytesRead > 0)
+            byte[] readBuffer = new byte[MAX_FRAMESIZE];
+            bytesRead = mPort.read(readBuffer, timeout);
+            if(bytesRead > 0)
+            {
+                //Just take the response bytes
+                byte[] responseBytes = new byte[bytesRead];
+                System.arraycopy(readBuffer, 0, responseBytes, 0, bytesRead);
+                concatBuffer.put(responseBytes);
+            }
+
+            if (waitingForResponse && bytesRead > 0)
             {
                 waitingForResponse = false;
                 Logger.d(TAG, "Read some data, not waiting for further responses");
             }
 
-            if(waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
+            if (waitingForResponse && ((startTime + timeout) < System.currentTimeMillis()))
             {
                 waitingForResponse = false;
                 Logger.d(TAG, "Timeout, not waiting for further responses");
             }
+        }
 
-            if(bytesRead > 0)
+        if(concatBuffer.position() > 0)
+        {
+/*
+            Logger.d(TAG, "********************************************");
+            Logger.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
+            Logger.d(TAG, "********************************************");*/
+            Logger.d(TAG, String.format("Read %d bytes", concatBuffer.position()));
+            Logger.d(TAG, HexDump.dumpHexString(concatBuffer.array(), 0, Math.min(32, concatBuffer.position())));
+
+            try
             {
-/*                Logger.d(TAG, HexDump.dumpHexString(readBuffer, 0, Math.min(32, readBuffer.length)));
-                Logger.d(TAG, "********************************************");
-                Logger.d(TAG, "*         HAPPY DAYS ARE HERE AGAIN        *");
-                Logger.d(TAG, "********************************************");*/
-                Logger.d(TAG, String.format("Read %d bytes", bytesRead));
+                //Deserialise the response
+                byte[] parseBuffer = new byte[concatBuffer.position()];
+                //Extract the response part only
+                System.arraycopy(concatBuffer.array(), 0, parseBuffer, 0, concatBuffer.position());
+                responses = parser.process(parseBuffer);
+            }
+            catch(Exception e)
+            {
+                parser.clear();
+                Log.i("MePOS", "Fatal error");
+                Log.i("MePOS", "Could not deserialise response");
+                Log.i("MePOS", HexDump.dumpHexString(concatBuffer.array(), 0, concatBuffer.position()));
 
-                //Just take the response bytes
-                byte[] responseBytes = new byte[bytesRead];
-                System.arraycopy(readBuffer, 0, responseBytes, 0, bytesRead);
-
-                try
-                {
-                    //Deserialise the response
-                    responses = parser.process(responseBytes);
-                }
-                catch(Exception e)
-                {
-                    parser.clear();
-                    Log.i("MePOS", "Fatal error");
-                    Log.i("MePOS", "Could not deserialise response");
-                    Log.i("MePOS", e.getMessage());
-                    Log.i("MePOS", HexDump.dumpHexString(responseBytes, 0, responseBytes.length));
-
-                    e.printStackTrace();
-                    throw new HubResponseException("Cannot deserialise command", e);
-                }
+                e.printStackTrace();
+                throw new HubResponseException("Cannot deserialise command", e);
             }
         }
 

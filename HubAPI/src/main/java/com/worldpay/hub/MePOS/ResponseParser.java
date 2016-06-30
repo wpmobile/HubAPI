@@ -187,7 +187,16 @@ public class ResponseParser
                 case STATE_TAG:
                     mCurrentEnvelope.setTag((byte) (b & 0x7F));
                     validationBuffer.put(b);
-                    mExpectedState = STATE_COMMAND_DATA;
+                    //Its possible to have no command data
+                    if(mCommandData.capacity() > 0)
+                    {
+                        mExpectedState = STATE_COMMAND_DATA;
+                    }
+                    else
+                    {
+                        //No command data - go to checksum
+                        mExpectedState = STATE_CHECKSUM_MSB;
+                    }
                     break;
                 case STATE_COMMAND_DATA:
                     mCommandData.put(b);
