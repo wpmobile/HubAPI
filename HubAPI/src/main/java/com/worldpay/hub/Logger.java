@@ -7,20 +7,43 @@ import android.util.Log;
  */
 public class Logger {
 
-    private static int debugLogLevel = LogLevel.DEBUG_LOGS;
+    private static LogLevel debugLogLevel = LogLevel.DEBUG_LOGS;
 
-    public static int getDebugLogLevel() {
+    public static LogLevel getDebugLogLevel() {
         return debugLogLevel;
     }
 
-    public static void setDebugLogLevel(int logLevel) {
+    public static void setDebugLogLevel(LogLevel logLevel) {
         debugLogLevel = logLevel;
     }
 
-    public static class LogLevel {
-        public static final int NO_LOGS = 0;
-        public static final int DEBUG_LOGS = 1;
-        public static final int DEBUG_LOGS_EXTENDED = 2;
+    public enum LogLevel {
+        NO_LOGS(0),
+        DEBUG_LOGS(1),
+        DEBUG_LOGS_EXTENDED(2);
+
+        private final int value;
+
+        LogLevel(final int newValue) {
+            value = newValue;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public LogLevel getLogLevelFromValue(int value) {
+            switch (value) {
+                case 0:
+                    return NO_LOGS;
+                case 1:
+                    return DEBUG_LOGS;
+                case 2:
+                    return DEBUG_LOGS_EXTENDED;
+                default:
+                    throw new IllegalArgumentException("Argument value does not exist: "+value);
+            }
+        }
     }
 
     public static void d(String tag, String msg) {
