@@ -32,7 +32,7 @@ public class Logger {
             return value;
         }
 
-        public LogLevel getLogLevelFromValue(int value) {
+        public static LogLevel getLogLevelFromValue(int value) {
             switch (value) {
                 case 0:
                     return NO_LOGS;
